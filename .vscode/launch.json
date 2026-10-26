@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "运行当前包 (main)",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}"
+    },
+    {
+      "name": "运行当前文件",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${file}"
+    }
+  ]
+}

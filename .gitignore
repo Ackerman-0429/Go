@@ -1,0 +1,26 @@
+# ---- 编译产物 ----
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+/hello
+
+# ---- 测试 / 覆盖率 ----
+*.test
+*.out
+coverage.html
+
+# ---- 依赖目录（vendor 一般要提交，故不忽略）----
+/bin/
+/gopath/
+
+# ---- 编辑器 / 本地工具数据 ----
+.workbuddy/
+*.log
+.DS_Store
+Thumbs.db
+
+# ---- 本地私有配置 ----
+.env
+*.local

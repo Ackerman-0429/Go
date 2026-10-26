@@ -1,0 +1,23 @@
+{
+  // Go 代码保存时自动格式化 + 自动整理 import
+  "[go]": {
+    "editor.defaultFormatter": "golang.go",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    },
+    "editor.tabSize": 4,
+    "editor.insertSpaces": false
+  },
+  "go.useLanguageServer": true,
+  "go.toolsManagement.autoUpdate": true,
+  // 静态检查只保留 gopls 服务端一份（见下方 ui.diagnostic.staticcheck）。
+  // 不要再配 go.lintTool / go.lintOnSave，否则客户端会再跑一遍，产生重复诊断。
+  "gopls": {
+    "ui.semanticTokens": true,
+    "ui.completion.usePlaceholders": true,
+    "ui.diagnostic.staticcheck": true
+  },
+  "files.eol": "\n",
+  "files.trimTrailingWhitespace": true
+}
