@@ -43,20 +43,20 @@ func (c *HelloController) Hello(ctx context.Context, req *HelloReq) (res *HelloR
 	}, nil
 }
 
-// DbReq 无入参
-type DbReq struct {
+// DBReq 无入参
+type DBReq struct {
 	g.Meta `path:"/db" method:"get" summary:"数据库连通性测试"`
 }
 
-// DbRes 数据库信息
-type DbRes struct {
+// DBRes 数据库信息
+type DBRes struct {
 	Version  string `json:"version"  dc:"MySQL 版本"`
 	Database string `json:"database" dc:"当前数据库"`
 	Tables   int    `json:"tables"   dc:"表数量"`
 }
 
-// Db 查询数据库，验证 GoFrame 与 MySQL 的链路
-func (c *HelloController) Db(ctx context.Context, req *DbReq) (res *DbRes, err error) {
+// DB 查询数据库，验证 GoFrame 与 MySQL 的链路
+func (c *HelloController) DB(ctx context.Context, req *DBReq) (res *DBRes, err error) {
 	db := g.DB()
 
 	one, err := db.GetOne(ctx, "SELECT VERSION() AS version, DATABASE() AS dbname")
@@ -70,7 +70,7 @@ func (c *HelloController) Db(ctx context.Context, req *DbReq) (res *DbRes, err e
 		return nil, err
 	}
 
-	return &DbRes{
+	return &DBRes{
 		Version:  one["version"].String(),
 		Database: one["dbname"].String(),
 		Tables:   count,
