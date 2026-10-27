@@ -14,7 +14,7 @@ type RegisterReq struct {
 
 // RegisterRes 注册响应
 type RegisterRes struct {
-	Id uint64 `json:"id" dc:"用户ID"`
+	ID uint64 `json:"id" dc:"用户ID"`
 }
 
 // LoginReq 登录请求
@@ -26,7 +26,7 @@ type LoginReq struct {
 
 // LoginRes 登录响应
 type LoginRes struct {
-	Id       uint64 `json:"id"       dc:"用户ID"`
+	ID       uint64 `json:"id"       dc:"用户ID"`
 	Username string `json:"username" dc:"用户名"`
 	Nickname string `json:"nickname" dc:"昵称"`
 }
@@ -38,7 +38,7 @@ type InfoReq struct {
 
 // InfoRes 用户信息
 type InfoRes struct {
-	Id       uint64 `json:"id"       dc:"用户ID"`
+	ID       uint64 `json:"id"       dc:"用户ID"`
 	Username string `json:"username" dc:"用户名"`
 	Nickname string `json:"nickname" dc:"昵称"`
 	Email    string `json:"email"    dc:"邮箱"`

@@ -13,5 +13,5 @@ func (c *ControllerV1) Register(ctx context.Context, req *v1.RegisterReq) (res *
 	if err != nil {
 		return nil, err
 	}
-	return &v1.RegisterRes{Id: id}, nil
+	return &v1.RegisterRes{ID: id}, nil
 }

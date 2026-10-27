@@ -22,7 +22,7 @@ func (c *ControllerV1) Login(ctx context.Context, req *v1.LoginReq) (res *v1.Log
 	}
 
 	return &v1.LoginRes{
-		Id:       user.Id,
+		ID:       user.Id,
 		Username: user.Username,
 		Nickname: user.Nickname,
 	}, nil

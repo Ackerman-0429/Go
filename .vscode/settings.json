@@ -16,7 +16,12 @@
   "gopls": {
     "ui.semanticTokens": true,
     "ui.completion.usePlaceholders": true,
-    "ui.diagnostic.staticcheck": true
+    "ui.diagnostic.staticcheck": true,
+    // gf gen dao 生成的 entity/do 固定使用 Id 字段，与 ST1003（要求缩略词全大写 ID）
+    // 天然冲突。业务代码已手动遵守规范，故关闭该规则，避免十几个生成文件持续刷警告。
+    "ui.diagnostic.analyses": {
+      "ST1003": false
+    }
   },
   "files.eol": "\n",
   "files.trimTrailingWhitespace": true

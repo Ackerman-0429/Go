@@ -29,7 +29,7 @@ func (c *ControllerV1) Info(ctx context.Context, req *v1.InfoReq) (res *v1.InfoR
 	}
 
 	return &v1.InfoRes{
-		Id:       user.Id,
+		ID:       user.Id,
 		Username: user.Username,
 		Nickname: user.Nickname,
 		Email:    user.Email,
