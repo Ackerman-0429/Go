@@ -1,43 +1,58 @@
-// main.go —— Go 开发环境自检示例
+// main.go —— GoFrame v2 入门示例
 //
-// 运行方式：
+// 运行：
 //   go run .
-//   go run main.go
-// 编译成可执行文件：
-//   go build -o hello.exe .
+// 访问：
+//   http://127.0.0.1:8000/hello?name=Ackerman
+//
+// GoFrame 的"规范路由"（Standard Router）核心思路：
+// 用 g.Meta 在结构体上声明路径和方法，框架自动完成
+// 参数绑定 -> 参数校验 -> 调用方法 -> 结果序列化。
 package main
 
 import (
+	"context"
 	"fmt"
 	"runtime"
+
+	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/net/ghttp"
 )
 
-// Greeter 一个简单的结构体，演示 Go 的"方法"写法
-type Greeter struct {
-	Name string
+// HelloReq 请求参数。g.Meta 声明：GET /hello
+type HelloReq struct {
+	g.Meta `path:"/hello" method:"get" summary:"打招呼接口"`
+	Name   string `v:"required#name 不能为空" dc:"你的名字"`
 }
 
-// Hello 是挂在 Greeter 上的方法
-func (g Greeter) Hello() string {
-	return fmt.Sprintf("你好，%s！", g.Name)
+// HelloRes 响应数据
+type HelloRes struct {
+	Message string `json:"message" dc:"问候语"`
+}
+
+// HelloController 控制器，方法签名固定为 (ctx, req) -> (res, err)
+type HelloController struct{}
+
+// Hello 处理 GET /hello
+func (c *HelloController) Hello(ctx context.Context, req *HelloReq) (res *HelloRes, err error) {
+	return &HelloRes{
+		Message: fmt.Sprintf("你好，%s！运行环境 %s", req.Name, runtime.Version()),
+	}, nil
 }
 
 func main() {
-	fmt.Println("==============================")
-	fmt.Println("  Go 开发环境配置成功")
-	fmt.Println("==============================")
-	fmt.Println(Greeter{Name: "Go 开发者"}.Hello())
-	fmt.Printf("Go 版本  : %s\n", runtime.Version())
-	fmt.Printf("操作系统 : %s / %s\n", runtime.GOOS, runtime.GOARCH)
-	fmt.Printf("CPU 核数 : %d\n", runtime.NumCPU())
-	fmt.Println("------------------------------")
+	s := g.Server()
+	s.SetPort(8000)
 
-	// 简单的循环，验证基本语法
-	sum := 0
-	for i := 1; i <= 3; i++ {
-		fmt.Printf("循环输出 : 第 %d 次\n", i)
-		sum += i
-	}
-	fmt.Printf("1 + 2 + 3 = %d\n", sum)
-	fmt.Println("==============================")
+	// 开启自动生成的 OpenAPI 文档（v2.10 默认关闭）
+	s.SetOpenApiPath("/api.json")
+	s.SetSwaggerPath("/swagger")
+
+	s.Group("/", func(group *ghttp.RouterGroup) {
+		// 统一响应中间件：自动包成 {code, message, data}
+		group.Middleware(ghttp.MiddlewareHandlerResponse)
+		group.Bind(new(HelloController))
+	})
+
+	s.Run()
 }
