@@ -17,10 +17,13 @@
     "ui.semanticTokens": true,
     "ui.completion.usePlaceholders": true,
     "ui.diagnostic.staticcheck": true,
-    // gf gen dao 生成的 entity/do 固定使用 Id 字段，与 ST1003（要求缩略词全大写 ID）
-    // 天然冲突。业务代码已手动遵守规范，故关闭该规则，避免十几个生成文件持续刷警告。
+    // 关闭两条与 GoFrame 代码生成冲突的规则：
+    // ST1003 命名：gf gen dao 生成的 entity/do 固定用 Id 字段，重新生成会覆盖手改
+    // ST1000 包注释：api/hello、internal/cmd/dao/model 等生成包均无包注释，且标记 DO NOT EDIT
+    // 业务代码仍按规范书写并在包内保留了 Package 注释。
     "ui.diagnostic.analyses": {
-      "ST1003": false
+      "ST1003": false,
+      "ST1000": false
     }
   },
   "files.eol": "\n",

@@ -1,3 +1,4 @@
+// Package user 定义用户模块的接口契约，由 controller 层实现。
 package user
 
 import (

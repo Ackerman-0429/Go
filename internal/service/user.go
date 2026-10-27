@@ -1,3 +1,4 @@
+// Package service 定义业务接口与注册机制，具体实现位于 internal/logic。
 package service
 
 import (

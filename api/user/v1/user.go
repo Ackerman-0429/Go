@@ -1,3 +1,4 @@
+// Package v1 定义用户模块 v1 版本的接口出入参结构。
 package v1
 
 import (

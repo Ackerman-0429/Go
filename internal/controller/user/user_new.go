@@ -1,3 +1,4 @@
+// Package user 实现用户模块的控制器，只负责参数接收与响应组装。
 package user
 
 import (

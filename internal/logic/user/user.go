@@ -1,3 +1,4 @@
+// Package user 实现用户模块的业务逻辑：注册、登录、查询。
 package user
 
 import (
