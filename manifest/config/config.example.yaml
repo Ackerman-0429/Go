@@ -4,6 +4,9 @@ server:
   address:     ":8000"
   openapiPath: "/api.json"
   swaggerPath: "/swagger"
+  # 静态资源根目录：resource/public 下的文件直接对外提供
+  serverRoot:  "resource/public"
+  indexFiles:  ["index.html"]
 
 logger:
   level : "all"
