@@ -15,6 +15,9 @@ import (
 	"fmt"
 	"runtime"
 
+	// GoFrame v2 起数据库驱动不再内置，必须显式空白导入才会注册
+	_ "github.com/gogf/gf/contrib/drivers/mysql/v2"
+
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/net/ghttp"
 )
@@ -37,6 +40,40 @@ type HelloController struct{}
 func (c *HelloController) Hello(ctx context.Context, req *HelloReq) (res *HelloRes, err error) {
 	return &HelloRes{
 		Message: fmt.Sprintf("你好，%s！运行环境 %s", req.Name, runtime.Version()),
+	}, nil
+}
+
+// DbReq 无入参
+type DbReq struct {
+	g.Meta `path:"/db" method:"get" summary:"数据库连通性测试"`
+}
+
+// DbRes 数据库信息
+type DbRes struct {
+	Version  string `json:"version"  dc:"MySQL 版本"`
+	Database string `json:"database" dc:"当前数据库"`
+	Tables   int    `json:"tables"   dc:"表数量"`
+}
+
+// Db 查询数据库，验证 GoFrame 与 MySQL 的链路
+func (c *HelloController) Db(ctx context.Context, req *DbReq) (res *DbRes, err error) {
+	db := g.DB()
+
+	one, err := db.GetOne(ctx, "SELECT VERSION() AS version, DATABASE() AS dbname")
+	if err != nil {
+		return nil, err
+	}
+
+	count, err := db.GetCount(ctx,
+		"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE()")
+	if err != nil {
+		return nil, err
+	}
+
+	return &DbRes{
+		Version:  one["version"].String(),
+		Database: one["dbname"].String(),
+		Tables:   count,
 	}, nil
 }
 

@@ -1,0 +1,8 @@
+# GoFrame 配置
+# 官方约定的配置目录：manifest/config/
+
+database:
+  default:
+    # link 格式：type:user:password@tcp(host:port)/dbname
+    link: "mysql:root:123456@tcp(127.0.0.1:3306)/gfstudy"
+    debug: true
