@@ -24,3 +24,14 @@ Thumbs.db
 # ---- 本地私有配置 ----
 .env
 *.local
+# GoFrame 约定：本地实际配置不入库（含数据库密码）
+# 对外提供 config.example.yaml 供他人参考
+**/config/config.yaml
+
+# ---- GoFrame 工程产物 ----
+/output/
+/manifest/output/
+/temp/
+/temp.yaml
+/build/
+.gf/
