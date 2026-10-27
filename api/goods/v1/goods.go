@@ -1,0 +1,55 @@
+// Package v1 定义商品模块 v1 版本的接口出入参结构。
+package v1
+
+import (
+	"github.com/gogf/gf/v2/frame/g"
+)
+
+// ListReq 商品列表请求
+type ListReq struct {
+	g.Meta     `path:"/goods/list" method:"get" summary:"商品列表" tags:"商品"`
+	Page       int    `json:"page"       d:"1"  v:"min:1#页码最小为1" dc:"页码，默认1"`
+	PageSize   int    `json:"pageSize"   d:"10" v:"between:1,100#每页数量需在1-100之间" dc:"每页数量，默认10"`
+	CategoryID uint64 `json:"categoryId" dc:"按分类筛选，0或不传表示全部"`
+	Keyword    string `json:"keyword"    dc:"按商品名模糊搜索"`
+}
+
+// ListItem 列表项。只返回浏览所需字段，不含 detail 大文本。
+type ListItem struct {
+	ID         uint64  `json:"id"         dc:"商品ID"`
+	Name       string  `json:"name"       dc:"商品名称"`
+	Subtitle   string  `json:"subtitle"   dc:"副标题"`
+	Price      float64 `json:"price"      dc:"售价"`
+	Cover      string  `json:"cover"      dc:"封面图"`
+	Sales      uint    `json:"sales"      dc:"销量"`
+	Stock      uint    `json:"stock"      dc:"库存"`
+	CategoryID uint    `json:"categoryId" dc:"分类ID"`
+}
+
+// ListRes 分页结果
+type ListRes struct {
+	List     []ListItem `json:"list"     dc:"商品列表"`
+	Total    int        `json:"total"    dc:"总条数"`
+	Page     int        `json:"page"     dc:"当前页"`
+	PageSize int        `json:"pageSize" dc:"每页数量"`
+}
+
+// DetailReq 商品详情请求
+type DetailReq struct {
+	g.Meta `path:"/goods/detail" method:"get" summary:"商品详情" tags:"商品"`
+	ID     uint64 `json:"id" v:"required|min:1#请提供商品ID|商品ID不合法" dc:"商品ID"`
+}
+
+// DetailRes 商品详情
+type DetailRes struct {
+	ID         uint64   `json:"id"         dc:"商品ID"`
+	CategoryID uint     `json:"categoryId" dc:"分类ID"`
+	Name       string   `json:"name"       dc:"商品名称"`
+	Subtitle   string   `json:"subtitle"   dc:"副标题"`
+	Price      float64  `json:"price"      dc:"售价"`
+	Stock      uint     `json:"stock"      dc:"库存"`
+	Cover      string   `json:"cover"      dc:"封面图"`
+	Images     []string `json:"images"     dc:"多图列表"`
+	Detail     string   `json:"detail"     dc:"商品详情"`
+	Sales      uint     `json:"sales"      dc:"销量"`
+}
