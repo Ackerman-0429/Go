@@ -1,0 +1,13 @@
+# CLI 工具配置模板 —— 复制为 hack/config.yaml 后填入真实连接串
+# hack/config.yaml 已被 .gitignore 忽略（含数据库密码），不会提交
+# https://goframe.org/docs/cli
+gfcli:
+  gen:
+    dao:
+      - link: "mysql:root:YOUR_PASSWORD@tcp(127.0.0.1:3306)/gfstudy"
+        descriptionTag: true
+
+  docker:
+    build: "-a amd64 -s linux -p temp -ew"
+    tagPrefixes:
+      - my.image.pub/my-app

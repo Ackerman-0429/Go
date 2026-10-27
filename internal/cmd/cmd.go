@@ -8,6 +8,10 @@ import (
 	"github.com/gogf/gf/v2/os/gcmd"
 
 	"hello/internal/controller/hello"
+	"hello/internal/controller/user"
+
+	// 导入 logic 层，触发其 init() 完成 service 实现的注册
+	_ "hello/internal/logic/user"
 )
 
 var (
@@ -21,6 +25,7 @@ var (
 				group.Middleware(ghttp.MiddlewareHandlerResponse)
 				group.Bind(
 					hello.NewV1(),
+					user.NewV1(),
 				)
 			})
 			s.Run()

@@ -27,6 +27,8 @@ Thumbs.db
 # GoFrame 约定：本地实际配置不入库（含数据库密码）
 # 对外提供 config.example.yaml 供他人参考
 **/config/config.yaml
+# gf CLI 的 gen/docker 配置，同样含连接串
+/hack/config.yaml
 
 # ---- GoFrame 工程产物 ----
 /output/
