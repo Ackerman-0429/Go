@@ -5,7 +5,7 @@
 package hello
 
 import (
-	"hello/api/hello"
+	"goshop/api/hello"
 )
 
 type ControllerV1 struct{}

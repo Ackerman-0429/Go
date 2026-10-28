@@ -7,7 +7,7 @@ package cart
 import (
 	"context"
 
-	"hello/api/cart/v1"
+	"goshop/api/cart/v1"
 )
 
 type ICartV1 interface {

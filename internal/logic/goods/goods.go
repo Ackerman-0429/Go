@@ -7,11 +7,11 @@ import (
 	"github.com/gogf/gf/v2/errors/gcode"
 	"github.com/gogf/gf/v2/errors/gerror"
 
-	"hello/internal/consts"
-	"hello/internal/dao"
-	"hello/internal/model"
-	"hello/internal/model/entity"
-	"hello/internal/service"
+	"goshop/internal/consts"
+	"goshop/internal/dao"
+	"goshop/internal/model"
+	"goshop/internal/model/entity"
+	"goshop/internal/service"
 )
 
 type sGoods struct{}

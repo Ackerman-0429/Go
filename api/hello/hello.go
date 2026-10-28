@@ -7,7 +7,7 @@ package hello
 import (
 	"context"
 
-	"hello/api/hello/v1"
+	"goshop/api/hello/v1"
 )
 
 type IHelloV1 interface {

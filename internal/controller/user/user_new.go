@@ -5,7 +5,7 @@
 package user
 
 import (
-	"hello/api/user"
+	"goshop/api/user"
 )
 
 // ControllerV1 用户模块控制器，只负责参数接收与响应组装

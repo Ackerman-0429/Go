@@ -5,8 +5,8 @@ import (
 
 	"github.com/gogf/gf/v2/frame/g"
 
-	v1 "hello/api/user/v1"
-	"hello/internal/service"
+	v1 "goshop/api/user/v1"
+	"goshop/internal/service"
 )
 
 // Login 处理 POST /user/login，校验通过后写入 Session

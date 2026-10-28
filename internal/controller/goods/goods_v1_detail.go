@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 
-	v1 "hello/api/goods/v1"
-	"hello/internal/service"
+	v1 "goshop/api/goods/v1"
+	"goshop/internal/service"
 )
 
 // Detail 处理 GET /goods/detail

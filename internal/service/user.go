@@ -7,7 +7,7 @@ package service
 
 import (
 	"context"
-	"hello/internal/model/entity"
+	"goshop/internal/model/entity"
 )
 
 type (

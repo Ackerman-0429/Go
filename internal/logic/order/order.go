@@ -12,12 +12,12 @@ import (
 	"github.com/gogf/gf/v2/os/gtime"
 	"github.com/gogf/gf/v2/util/grand"
 
-	"hello/internal/consts"
-	"hello/internal/dao"
-	"hello/internal/model"
-	"hello/internal/model/entity"
-	"hello/internal/service"
-	"hello/utility/money"
+	"goshop/internal/consts"
+	"goshop/internal/dao"
+	"goshop/internal/model"
+	"goshop/internal/model/entity"
+	"goshop/internal/service"
+	"goshop/utility/money"
 )
 
 type sOrder struct{}

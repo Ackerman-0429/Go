@@ -5,9 +5,9 @@
 package logic
 
 import (
-	_ "hello/internal/logic/cart"
-	_ "hello/internal/logic/category"
-	_ "hello/internal/logic/goods"
-	_ "hello/internal/logic/order"
-	_ "hello/internal/logic/user"
+	_ "goshop/internal/logic/cart"
+	_ "goshop/internal/logic/category"
+	_ "goshop/internal/logic/goods"
+	_ "goshop/internal/logic/order"
+	_ "goshop/internal/logic/user"
 )

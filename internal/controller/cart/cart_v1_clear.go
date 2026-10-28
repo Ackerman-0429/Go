@@ -3,8 +3,8 @@ package cart
 import (
 	"context"
 
-	v1 "hello/api/cart/v1"
-	"hello/internal/service"
+	v1 "goshop/api/cart/v1"
+	"goshop/internal/service"
 )
 
 // Clear 处理 POST /cart/clear

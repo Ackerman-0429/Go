@@ -5,7 +5,7 @@ import (
 
 	"github.com/gogf/gf/v2/frame/g"
 
-	v1 "hello/api/user/v1"
+	v1 "goshop/api/user/v1"
 )
 
 // Logout 处理 POST /user/logout，清除会话中的用户标识

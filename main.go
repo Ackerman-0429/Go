@@ -9,9 +9,9 @@ import (
 
 	// 空白导入 logic 聚合包（由 gf gen service 维护），
 	// 触发各业务模块 init() 完成 service 实现注册
-	_ "hello/internal/logic"
+	_ "goshop/internal/logic"
 
-	"hello/internal/cmd"
+	"goshop/internal/cmd"
 )
 
 func main() {

@@ -1,4 +1,4 @@
-module hello
+module goshop
 
 go 1.27.0
 

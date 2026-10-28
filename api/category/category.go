@@ -7,7 +7,7 @@ package category
 import (
 	"context"
 
-	"hello/api/category/v1"
+	"goshop/api/category/v1"
 )
 
 type ICategoryV1 interface {

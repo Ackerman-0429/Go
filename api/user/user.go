@@ -7,7 +7,7 @@ package user
 import (
 	"context"
 
-	"hello/api/user/v1"
+	"goshop/api/user/v1"
 )
 
 type IUserV1 interface {

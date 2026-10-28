@@ -3,8 +3,8 @@ package category
 import (
 	"context"
 
-	v1 "hello/api/category/v1"
-	"hello/internal/service"
+	v1 "goshop/api/category/v1"
+	"goshop/internal/service"
 )
 
 // List 处理 GET /category/list

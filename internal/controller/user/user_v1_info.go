@@ -7,8 +7,8 @@ import (
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
 
-	v1 "hello/api/user/v1"
-	"hello/internal/service"
+	v1 "goshop/api/user/v1"
+	"goshop/internal/service"
 )
 
 // Info 处理 GET /user/info，从 Session 中识别当前用户

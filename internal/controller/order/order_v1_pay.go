@@ -3,9 +3,9 @@ package order
 import (
 	"context"
 
-	v1 "hello/api/order/v1"
-	"hello/internal/consts"
-	"hello/internal/service"
+	v1 "goshop/api/order/v1"
+	"goshop/internal/consts"
+	"goshop/internal/service"
 )
 
 // Pay 处理 POST /order/pay，模拟支付

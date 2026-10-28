@@ -8,12 +8,12 @@ import (
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
 
-	"hello/internal/consts"
-	"hello/internal/dao"
-	"hello/internal/model"
-	"hello/internal/model/entity"
-	"hello/internal/service"
-	"hello/utility/money"
+	"goshop/internal/consts"
+	"goshop/internal/dao"
+	"goshop/internal/model"
+	"goshop/internal/model/entity"
+	"goshop/internal/service"
+	"goshop/utility/money"
 )
 
 type sCart struct{}

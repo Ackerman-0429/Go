@@ -3,9 +3,9 @@ package cart
 import (
 	"context"
 
-	v1 "hello/api/cart/v1"
-	"hello/internal/model"
-	"hello/internal/service"
+	v1 "goshop/api/cart/v1"
+	"goshop/internal/model"
+	"goshop/internal/service"
 )
 
 // Add 处理 POST /cart/add

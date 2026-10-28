@@ -7,7 +7,7 @@ package order
 import (
 	"context"
 
-	"hello/api/order/v1"
+	"goshop/api/order/v1"
 )
 
 type IOrderV1 interface {

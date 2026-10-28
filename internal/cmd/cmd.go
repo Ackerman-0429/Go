@@ -7,13 +7,13 @@ import (
 	"github.com/gogf/gf/v2/net/ghttp"
 	"github.com/gogf/gf/v2/os/gcmd"
 
-	"hello/internal/controller/cart"
-	"hello/internal/controller/category"
-	"hello/internal/controller/goods"
-	"hello/internal/controller/hello"
-	"hello/internal/controller/order"
-	"hello/internal/controller/user"
-	"hello/internal/middleware"
+	"goshop/internal/controller/cart"
+	"goshop/internal/controller/category"
+	"goshop/internal/controller/goods"
+	"goshop/internal/controller/hello"
+	"goshop/internal/controller/order"
+	"goshop/internal/controller/user"
+	"goshop/internal/middleware"
 )
 
 var (

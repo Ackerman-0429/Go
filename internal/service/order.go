@@ -7,7 +7,7 @@ package service
 
 import (
 	"context"
-	"hello/internal/model"
+	"goshop/internal/model"
 
 	"github.com/gogf/gf/v2/os/gtime"
 )

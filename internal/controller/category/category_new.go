@@ -5,7 +5,7 @@
 package category
 
 import (
-	"hello/api/category"
+	"goshop/api/category"
 )
 
 // ControllerV1 分类模块控制器

@@ -7,7 +7,7 @@ package goods
 import (
 	"context"
 
-	"hello/api/goods/v1"
+	"goshop/api/goods/v1"
 )
 
 type IGoodsV1 interface {

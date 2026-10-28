@@ -8,10 +8,10 @@ import (
 	"github.com/gogf/gf/v2/errors/gerror"
 	"golang.org/x/crypto/bcrypt"
 
-	"hello/internal/dao"
-	"hello/internal/model/do"
-	"hello/internal/model/entity"
-	"hello/internal/service"
+	"goshop/internal/dao"
+	"goshop/internal/model/do"
+	"goshop/internal/model/entity"
+	"goshop/internal/service"
 )
 
 // sUser 是 service.IUser 的实现

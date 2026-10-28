@@ -3,8 +3,8 @@ package user
 import (
 	"context"
 
-	v1 "hello/api/user/v1"
-	"hello/internal/service"
+	v1 "goshop/api/user/v1"
+	"goshop/internal/service"
 )
 
 // Register 处理 POST /user/register

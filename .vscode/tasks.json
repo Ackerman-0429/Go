@@ -4,7 +4,7 @@
     {
       "label": "go: build",
       "type": "shell",
-      "command": "go build -o hello.exe .",
+      "command": "go build -o goshop.exe .",
       "group": {
         "kind": "build",
         "isDefault": true

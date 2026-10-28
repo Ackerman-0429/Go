@@ -4,7 +4,7 @@
 *.dll
 *.so
 *.dylib
-/hello
+/goshop
 
 # ---- 测试 / 覆盖率 ----
 *.test

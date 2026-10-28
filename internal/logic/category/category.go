@@ -4,9 +4,9 @@ package category
 import (
 	"context"
 
-	"hello/internal/dao"
-	"hello/internal/model/entity"
-	"hello/internal/service"
+	"goshop/internal/dao"
+	"goshop/internal/model/entity"
+	"goshop/internal/service"
 )
 
 // categoryStatusEnabled 启用状态

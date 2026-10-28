@@ -5,7 +5,7 @@
 package dao
 
 import (
-	"hello/internal/dao/internal"
+	"goshop/internal/dao/internal"
 )
 
 // categoryDao is the data access object for the table category.

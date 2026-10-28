@@ -5,7 +5,7 @@
 package goods
 
 import (
-	"hello/api/goods"
+	"goshop/api/goods"
 )
 
 // ControllerV1 商品模块控制器，只负责参数接收与响应组装

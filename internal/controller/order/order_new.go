@@ -10,9 +10,9 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gtime"
 
-	"hello/api/order"
-	"hello/internal/consts"
-	"hello/internal/middleware"
+	"goshop/api/order"
+	"goshop/internal/consts"
+	"goshop/internal/middleware"
 )
 
 // ControllerV1 订单控制器。全部接口都要求登录态，鉴权由 Auth 中间件统一完成。

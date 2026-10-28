@@ -9,8 +9,8 @@ import (
 
 	"github.com/gogf/gf/v2/frame/g"
 
-	"hello/api/cart"
-	"hello/internal/middleware"
+	"goshop/api/cart"
+	"goshop/internal/middleware"
 )
 
 // ControllerV1 购物车控制器。全部接口都要求登录态，鉴权由 Auth 中间件统一完成。

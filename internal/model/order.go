@@ -3,7 +3,7 @@ package model
 import (
 	"github.com/gogf/gf/v2/os/gtime"
 
-	"hello/internal/model/entity"
+	"goshop/internal/model/entity"
 )
 
 // OrderCreateInput 下单参数，商品来自当前用户购物车中可结算的部分

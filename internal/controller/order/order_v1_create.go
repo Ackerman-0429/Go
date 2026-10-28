@@ -3,9 +3,9 @@ package order
 import (
 	"context"
 
-	v1 "hello/api/order/v1"
-	"hello/internal/model"
-	"hello/internal/service"
+	v1 "goshop/api/order/v1"
+	"goshop/internal/model"
+	"goshop/internal/service"
 )
 
 // Create 处理 POST /order/create

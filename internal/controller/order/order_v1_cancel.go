@@ -3,8 +3,8 @@ package order
 import (
 	"context"
 
-	v1 "hello/api/order/v1"
-	"hello/internal/service"
+	v1 "goshop/api/order/v1"
+	"goshop/internal/service"
 )
 
 // Cancel 处理 POST /order/cancel

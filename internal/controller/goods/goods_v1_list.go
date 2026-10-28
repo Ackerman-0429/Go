@@ -3,9 +3,9 @@ package goods
 import (
 	"context"
 
-	v1 "hello/api/goods/v1"
-	"hello/internal/model"
-	"hello/internal/service"
+	v1 "goshop/api/goods/v1"
+	"goshop/internal/model"
+	"goshop/internal/service"
 )
 
 // List 处理 GET /goods/list
