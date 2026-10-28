@@ -42,7 +42,7 @@ go run .                 # 或双击 scripts/start-dev.bat
 - 接口文档：http://127.0.0.1:8000/swagger/
 - OpenAPI：http://127.0.0.1:8000/api.json
 
-演示账号：`alice`（管理员）/ `bob`（普通用户），密码 `123456`。
+演示账号：`admin`（管理员）/ `alice`、`bob`（普通用户），密码 `123456`。
 
 ## 目录结构（GoFrame 官方分层）
 
@@ -107,18 +107,35 @@ utility/                通用工具（金额分换算等）
 | POST | `/admin/goods/save` | 新建或编辑商品（`id` 为空即新建） |
 | POST | `/admin/goods/status` | 上下架 |
 | POST | `/admin/goods/delete` | 删除商品（同时清理购物车引用，订单快照不受影响） |
+| GET | `/admin/category/list` | 分类列表，含停用分类，带商品数与子分类数 |
+| POST | `/admin/category/save` | 新建或编辑分类（`id` 为空即新建，仅支持两级） |
+| POST | `/admin/category/delete` | 删除分类（有子分类或商品时拒绝，返回具体原因） |
 | GET | `/admin/order/list` | 全站订单，支持状态/订单号/收货人筛选 |
 | POST | `/admin/order/ship` | 发货：已付款 → 已发货 |
 | POST | `/admin/order/finish` | 完成：已发货 → 已完成 |
 
-**给已有环境升级**：旧库没有 `role` 字段时执行
+**给已有环境升级**：
 
 ```bash
+# 旧库没有 role 字段时先加列
 mysql -h 127.0.0.1 -u root -p gfstudy < manifest/sql/upgrade/20261028_user_role.sql
-# 该脚本会加列，并把演示账号 alice 设为管理员
+
+# 建立 admin 管理员账号，并收回 alice 的管理员权限
+mysql -h 127.0.0.1 -u root -p gfstudy < manifest/sql/upgrade/20261028_admin_role.sql
 ```
 
+第二个脚本用 `INSERT ... ON DUPLICATE KEY UPDATE`，所以 admin 已存在时不会覆盖它的密码，
+只纠正 `role`/`status`；脚本里的哈希对应演示密码，仅适合本地开发环境。
+
 手工指定管理员：`UPDATE user SET role = 1 WHERE username = 'xxx';`
+
+**分类管理的约束**（都在 logic 层校验，不靠前端拦）：
+
+- 只支持两级。父分类必须存在且自身是顶级分类；已经有子分类的分类不能被挂到别的分类下。
+- 同一父级下不允许重名（避免前台出现两个一样的筛选项）。
+- 删除前检查子分类与商品：有就拒绝并说明具体数量，避免产生孤儿分类或空分类的商品。
+- 顶级分类的「商品数」会累加子分类，否则父分类永远显示 0 件，看起来像统计错误。
+- 停用只是后台标记：前台 `/category/list` 不再返回，但商品仍保留在该分类下，后台也能看到。
 
 ## 代码生成约定
 

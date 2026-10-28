@@ -60,3 +60,25 @@ type AdminStats struct {
 	OnSaleGoodsCount int
 	UserCount        int
 }
+
+// CategoryAdminItem 后台分类条目。GoodsCount 对顶级分类会累加其子分类的商品数。
+type CategoryAdminItem struct {
+	ID         uint
+	ParentID   uint
+	ParentName string
+	Name       string
+	Sort       int
+	Status     uint
+	GoodsCount int
+	Children   int
+	CreatedAt  *gtime.Time
+}
+
+// CategorySaveInput 后台新建/编辑分类。ID 为 0 表示新建。
+type CategorySaveInput struct {
+	ID       uint64
+	ParentID uint64
+	Name     string
+	Sort     int
+	Status   uint
+}

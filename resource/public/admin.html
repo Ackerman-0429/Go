@@ -149,6 +149,7 @@
   <h1>GoShop <span>管理后台</span></h1>
   <nav class="tabs">
     <button data-tab="goods" class="on">商品管理</button>
+    <button data-tab="category">分类管理</button>
     <button data-tab="orders">订单管理</button>
   </nav>
   <div class="head-right">
@@ -191,6 +192,31 @@
       </table>
     </div>
     <div class="pager" id="goodsPager"></div>
+  </section>
+
+  <!-- 分类管理 -->
+  <section class="panel hide" id="panel-category">
+    <div class="toolbar">
+      <span class="muted" style="font-size:13px">仅支持两级：顶级分类与子分类。停用的分类不再出现在商城前台。</span>
+      <button class="btn sm spacer" id="cCreate">+ 新建分类</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:60px">ID</th>
+            <th>分类名称</th>
+            <th style="width:150px">上级分类</th>
+            <th style="width:80px">排序</th>
+            <th style="width:90px">商品数</th>
+            <th style="width:90px">状态</th>
+            <th style="width:150px">操作</th>
+          </tr>
+        </thead>
+        <tbody id="catBody"></tbody>
+      </table>
+    </div>
+    <div class="pager" id="catPager"></div>
   </section>
 
   <!-- 订单管理 -->
@@ -281,6 +307,42 @@
       <div class="dialog-foot">
         <button type="button" class="btn ghost" id="goodsCancel">取消</button>
         <button type="submit" class="btn" id="goodsSubmit">保存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 分类编辑弹窗 -->
+<div class="modal" id="catModal">
+  <div class="dialog">
+    <h3 id="catTitle">新建分类</h3>
+    <p class="hint">排序值越小越靠前；同一父级下不允许重名。</p>
+    <form id="catForm">
+      <input type="hidden" name="id" id="cId">
+      <div class="field">
+        <label>上级分类</label>
+        <select name="parentId" id="cParent"></select>
+      </div>
+      <div class="field">
+        <label>分类名称</label>
+        <input name="name" id="cName" placeholder="2-30 个字符，如「手机数码」" required>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>排序值</label>
+          <input name="sort" id="cSort" type="number" min="0" max="9999" step="1" value="0">
+        </div>
+        <div class="field">
+          <label>状态</label>
+          <select name="status" id="cStatus">
+            <option value="1">启用</option>
+            <option value="0">停用</option>
+          </select>
+        </div>
+      </div>
+      <div class="dialog-foot">
+        <button type="button" class="btn ghost" id="catCancel">取消</button>
+        <button type="submit" class="btn" id="catSubmit">保存</button>
       </div>
     </form>
   </div>
@@ -407,21 +469,22 @@ function flattenCategories() {
   const tops = state.categories.filter((c) => c.parentId === 0);
   const out = [];
   tops.forEach((t) => {
-    out.push({ id: t.id, name: t.name, depth: 0 });
+    out.push({ id: t.id, name: t.name, depth: 0, status: t.status });
     state.categories
       .filter((c) => c.parentId === t.id)
-      .forEach((c) => out.push({ id: c.id, name: c.name, depth: 1 }));
+      .forEach((c) => out.push({ id: c.id, name: c.name, depth: 1, status: c.status }));
   });
   // 兜底：父分类不在列表里的孤儿节点也要显示
   state.categories.forEach((c) => {
-    if (!out.some((o) => o.id === c.id)) out.push({ id: c.id, name: c.name, depth: 0 });
+    if (!out.some((o) => o.id === c.id)) out.push({ id: c.id, name: c.name, depth: 0, status: c.status });
   });
   return out;
 }
 
 function renderCategorySelects() {
   const list = flattenCategories();
-  const label = (c) => (c.depth ? '　└ ' : '') + c.name;
+  // 停用的分类仍要能显示（历史商品可能挂在上面），但标出来避免误选
+  const label = (c) => (c.depth ? '　└ ' : '') + c.name + (c.status === 0 ? '（已停用）' : '');
 
   document.getElementById('gCategory').innerHTML =
     '<option value="0">全部分类</option>' +
@@ -434,6 +497,119 @@ function renderCategorySelects() {
 function categoryName(id) {
   const c = state.categories.find((x) => x.id === Number(id));
   return c ? c.name : '未分类';
+}
+
+// ---------------------------------------------------------------------------
+// 分类
+// ---------------------------------------------------------------------------
+let catCache = [];
+
+async function loadCategories() {
+  try {
+    const d = await api('/admin/category/list');
+    catCache = d.list || [];
+    state.categories = catCache; // 商品页的筛选/表单下拉共用这份数据
+    renderCategories(catCache);
+    renderCategorySelects();
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
+
+function renderCategories(list) {
+  const body = document.getElementById('catBody');
+  if (!list.length) {
+    body.innerHTML = '<tr><td colspan="7" class="empty">还没有分类，点右上角新建</td></tr>';
+  } else {
+    body.innerHTML = list.map((c) => `
+      <tr>
+        <td class="muted">${c.id}</td>
+        <td>${c.parentId ? '　└ ' : ''}${esc(c.name)}${c.children ? `<span style="color:#999;font-size:11px;margin-left:8px">${c.children} 个子分类</span>` : ''}</td>
+        <td class="muted">${esc(c.parentName || '—')}</td>
+        <td>${c.sort}</td>
+        <td>${c.goodsCount}</td>
+        <td><span class="tag ${c.status === 1 ? 'on' : 'off'}">${c.status === 1 ? '启用' : '停用'}</span></td>
+        <td>
+          <div class="ops">
+            <button class="btn ghost sm" onclick="editCategory(${c.id})">编辑</button>
+            <button class="btn danger sm" onclick="deleteCategory(${c.id})">删除</button>
+          </div>
+        </td>
+      </tr>`).join('');
+  }
+  document.getElementById('catPager').innerHTML =
+    `<span>共 ${list.length} 个分类</span><span class="spacer"></span>`;
+}
+
+// 上级分类只能选顶级分类；编辑时排除自己，已有子分类的分类则锁死为顶级
+function renderParentSelect(excludeId) {
+  const tops = state.categories.filter((c) => c.parentId === 0 && c.id !== excludeId);
+  document.getElementById('cParent').innerHTML =
+    '<option value="0">顶级分类</option>' +
+    tops.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+}
+
+function openCatModal() {
+  document.getElementById('catForm').reset();
+  document.getElementById('cId').value = '';
+  document.getElementById('catTitle').textContent = '新建分类';
+  renderParentSelect(0);
+  document.getElementById('cParent').disabled = false;
+  document.getElementById('cParent').value = '0';
+  document.getElementById('cStatus').value = '1';
+  document.getElementById('cSort').value = '0';
+  document.getElementById('catModal').classList.add('show');
+}
+
+function editCategory(id) {
+  const c = catCache.find((x) => x.id === id);
+  if (!c) return;
+  document.getElementById('catTitle').textContent = '编辑分类 #' + c.id;
+  document.getElementById('cId').value = c.id;
+  renderParentSelect(c.id);
+  const sel = document.getElementById('cParent');
+  sel.value = c.parentId;
+  // 已是父级的分类不能再变成别人的子分类，否则会出现第三级
+  sel.disabled = c.children > 0;
+  document.getElementById('cName').value = c.name;
+  document.getElementById('cSort').value = c.sort;
+  document.getElementById('cStatus').value = c.status;
+  document.getElementById('catModal').classList.add('show');
+}
+
+async function submitCategory(e) {
+  e.preventDefault();
+  const form = new FormData(document.getElementById('catForm'));
+  // 上级分类被禁用时不会进 FormData，这里给默认值
+  const payload = { id: 0, parentId: 0, sort: 0, status: 1 };
+  form.forEach((v, k) => { payload[k] = v; });
+  const btn = document.getElementById('catSubmit');
+  btn.disabled = true;
+  try {
+    const d = await post('/admin/category/save', payload);
+    toast(payload.id == 0 ? '已创建，ID ' + d.id : '已保存');
+    document.getElementById('catModal').classList.remove('show');
+    await loadCategories();
+    loadGoods(); // 分类名可能改过，商品表格要跟着刷新
+  } catch (err) {
+    toast(err.message, true);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function deleteCategory(id) {
+  const c = catCache.find((x) => x.id === id);
+  const name = c ? c.name : '#' + id;
+  if (!confirm(`确认删除分类「${name}」？`)) return;
+  try {
+    await post('/admin/category/delete', { id });
+    toast('已删除');
+    await loadCategories();
+    loadGoods();
+  } catch (e) {
+    toast(e.message, true);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -675,8 +851,11 @@ function switchTab(tab) {
     b.classList.toggle('on', b.dataset.tab === tab);
   });
   document.getElementById('panel-goods').classList.toggle('hide', tab !== 'goods');
+  document.getElementById('panel-category').classList.toggle('hide', tab !== 'category');
   document.getElementById('panel-orders').classList.toggle('hide', tab !== 'orders');
-  if (tab === 'goods') loadGoods(); else loadOrders();
+  if (tab === 'goods') loadGoods();
+  else if (tab === 'category') loadCategories();
+  else loadOrders();
 }
 
 async function boot() {
@@ -689,13 +868,9 @@ async function boot() {
   }
   document.getElementById('who').textContent = `👤 ${state.me.nickname || state.me.username}`;
 
-  // 2) 概览与分类
+  // 2) 概览与分类（后台接口，含停用分类）
   await loadStats();
-  try {
-    const d = await api('/category/list');
-    state.categories = d.list || [];
-    renderCategorySelects();
-  } catch (e) { /* 分类拉不到不影响主流程 */ }
+  await loadCategories();
 
   // 3) 默认展示商品
   loadGoods();
@@ -712,6 +887,11 @@ async function boot() {
     loadGoods();
   };
   document.getElementById('gCreate').onclick = openGoodsModal;
+  document.getElementById('cCreate').onclick = openCatModal;
+  document.getElementById('catCancel').onclick = () => {
+    document.getElementById('catModal').classList.remove('show');
+  };
+  document.getElementById('catForm').onsubmit = submitCategory;
   document.getElementById('goodsCancel').onclick = () => {
     document.getElementById('goodsModal').classList.remove('show');
   };

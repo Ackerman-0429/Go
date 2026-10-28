@@ -170,3 +170,54 @@ type OrderFinishRes struct {
 	Status     uint   `json:"status"     dc:"当前状态"`
 	StatusText string `json:"statusText" dc:"状态文案"`
 }
+
+// ---------------------------------------------------------------------------
+// 分类管理
+// ---------------------------------------------------------------------------
+
+// CategoryListReq 后台分类列表
+type CategoryListReq struct {
+	g.Meta `path:"/category/list" method:"get" summary:"分类列表（含停用）" tags:"后台-分类"`
+}
+
+// CategoryItem 后台分类条目
+type CategoryItem struct {
+	ID         uint64 `json:"id"         dc:"分类ID"`
+	ParentID   uint64 `json:"parentId"   dc:"父分类ID，0为顶级"`
+	ParentName string `json:"parentName" dc:"父分类名称，顶级为空"`
+	Name       string `json:"name"       dc:"分类名称"`
+	Sort       int    `json:"sort"       dc:"排序值，越小越靠前"`
+	Status     uint   `json:"status"     dc:"状态：1启用 0停用"`
+	GoodsCount int    `json:"goodsCount" dc:"商品数，顶级分类含其子分类"`
+	Children   int    `json:"children"   dc:"直接子分类数"`
+	CreatedAt  string `json:"createdAt"  dc:"创建时间"`
+}
+
+// CategoryListRes 平铺返回，已按「顶级 → 子级」排好序
+type CategoryListRes struct {
+	List []CategoryItem `json:"list" dc:"分类列表"`
+}
+
+// CategorySaveReq 新建或编辑分类。仅支持两级，所以父分类必须是顶级分类。
+type CategorySaveReq struct {
+	g.Meta   `path:"/category/save" method:"post" summary:"保存分类" tags:"后台-分类"`
+	ID       uint64 `json:"id"       dc:"分类ID，0 表示新建"`
+	ParentID uint64 `json:"parentId" d:"0" dc:"父分类ID，0 为顶级"`
+	Name     string `json:"name"     v:"required|length:2,30#请输入分类名称|分类名称长度需在2-30之间" dc:"分类名称"`
+	Sort     int    `json:"sort"     d:"0" v:"between:0,9999#排序值需在0-9999之间"                  dc:"排序值，越小越靠前"`
+	Status   uint   `json:"status"   d:"1" v:"in:0,1#状态只能是0或1"                             dc:"状态：1启用 0停用"`
+}
+
+// CategorySaveRes 保存结果
+type CategorySaveRes struct {
+	ID uint64 `json:"id" dc:"分类ID"`
+}
+
+// CategoryDeleteReq 删除分类。存在子分类或商品时会被拒绝。
+type CategoryDeleteReq struct {
+	g.Meta `path:"/category/delete" method:"post" summary:"删除分类" tags:"后台-分类"`
+	ID     uint64 `json:"id" v:"required|min:1#请提供分类ID|分类ID不合法" dc:"分类ID"`
+}
+
+// CategoryDeleteRes 删除结果
+type CategoryDeleteRes struct{}

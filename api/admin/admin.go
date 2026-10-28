@@ -19,4 +19,7 @@ type IAdminV1 interface {
 	OrderList(ctx context.Context, req *v1.OrderListReq) (res *v1.OrderListRes, err error)
 	OrderShip(ctx context.Context, req *v1.OrderShipReq) (res *v1.OrderShipRes, err error)
 	OrderFinish(ctx context.Context, req *v1.OrderFinishReq) (res *v1.OrderFinishRes, err error)
+	CategoryList(ctx context.Context, req *v1.CategoryListReq) (res *v1.CategoryListRes, err error)
+	CategorySave(ctx context.Context, req *v1.CategorySaveReq) (res *v1.CategorySaveRes, err error)
+	CategoryDelete(ctx context.Context, req *v1.CategoryDeleteReq) (res *v1.CategoryDeleteRes, err error)
 }
