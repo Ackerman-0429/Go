@@ -15,5 +15,6 @@ type IUserV1 interface {
 	Login(ctx context.Context, req *v1.LoginReq) (res *v1.LoginRes, err error)
 	Info(ctx context.Context, req *v1.InfoReq) (res *v1.InfoRes, err error)
 	Profile(ctx context.Context, req *v1.ProfileReq) (res *v1.ProfileRes, err error)
+	Password(ctx context.Context, req *v1.PasswordReq) (res *v1.PasswordRes, err error)
 	Logout(ctx context.Context, req *v1.LogoutReq) (res *v1.LogoutRes, err error)
 }

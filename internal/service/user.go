@@ -25,6 +25,10 @@ type (
 		// UpdateProfile 用户自助修改资料：昵称、邮箱、手机号。
 		// 角色、状态、用户名都不在可改范围内，所以这个接口即便被构造调用也越不了权。
 		UpdateProfile(ctx context.Context, in model.UserProfileInput) (*entity.User, error)
+		// ChangePassword 用户自助改密码。必须验原密码——只有会话还不够，
+		// 否则别人碰一下没锁屏的浏览器就能把密码换掉。
+		// 改完不动 Session：当前这台设备继续可用，其他设备下次登录才需要新密码。
+		ChangePassword(ctx context.Context, in model.UserPasswordInput) error
 		// AdminSave 编辑用户：昵称、角色、状态。
 		// operatorID 是当前登录的管理员，用来拦住「把自己锁在门外」的操作。
 		AdminSave(ctx context.Context, in model.UserSaveInput, operatorID uint64) (uint64, error)

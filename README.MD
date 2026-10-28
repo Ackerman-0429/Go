@@ -74,7 +74,7 @@ utility/                通用工具（金额分换算等）
 
 | 模块 | 接口 | 说明 |
 | --- | --- | --- |
-| 用户 | `POST /user/register`、`POST /user/login`、`POST /user/logout`、`GET /user/info`、`POST /user/profile` | 注册/登录写入 Session；`profile` 供用户自助改昵称/邮箱/手机号 |
+| 用户 | `POST /user/register`、`POST /user/login`、`POST /user/logout`、`GET /user/info`、`POST /user/profile`、`POST /user/password` | 注册/登录写入 Session；`profile` 改昵称/邮箱/手机号，`password` 凭原密码改密 |
 | 分类 | `GET /category/list` | 二级分类，深度优先排序 |
 | 商品 | `GET /goods/list`、`GET /goods/detail` | 仅返回上架商品 |
 | 购物车 | `POST /cart/add|update|delete|clear`、`GET /cart/list` | 需登录 |
@@ -172,6 +172,16 @@ mysql -h 127.0.0.1 -u root -p gfstudy < manifest/sql/upgrade/20261028_admin_role
 - 用户控制器整体挂在**公开分组**（登录/注册本身不需要登录态），所以这个接口自己从 Session
   取用户 ID，并在 logic 里回查 `user.status`：管理员禁用账号后，旧 Session 也改不了资料。
 - 邮箱/手机号的唯一性校验排除自己（`checkContactUnique(..., id)`），否则原样提交会被判重复。
+
+**用户自助改密码**（`POST /user/password`）：
+
+- **必须验原密码**。只凭会话不够——别人碰一下没锁屏的浏览器，就能把密码换成自己的。
+- 校验顺序：账号存在且未禁用 → 原密码 `bcrypt.CompareHashAndPassword` 通过 → 新密码不能与原密码相同。
+  原密码错、新旧相同都返回 `code 51` 并给出具体原因，前端直接显示在表单下方。
+- 新密码走与注册同一套规则（6-32 位）并重新 bcrypt 哈希，**绝不落明文**。
+- 改完不动 Session：当前设备继续可用，用户不会改完密码就被踢回登录页；
+  其他设备上已登录的会话也不受影响（本项目 Session 存在 Cookie 里，没有做多端会话表）。
+- 与后台「重置密码」的分工：用户自己改要验原密码，管理员重置不需要（客服场景，管理员也不知道原密码）。
 
 ## 代码生成约定
 

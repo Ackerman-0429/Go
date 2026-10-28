@@ -8,3 +8,10 @@ type UserProfileInput struct {
 	Email    string
 	Phone    string
 }
+
+// UserPasswordInput 用户自助修改密码，必须带上原密码做校验
+type UserPasswordInput struct {
+	ID          uint64
+	OldPassword string
+	NewPassword string
+}

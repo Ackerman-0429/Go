@@ -241,6 +241,41 @@ func (s *sUser) UpdateProfile(ctx context.Context, in model.UserProfileInput) (*
 	return user, nil
 }
 
+// ChangePassword 用户自助改密码。必须验原密码——只有会话还不够，
+// 否则别人碰一下没锁屏的浏览器就能把密码换掉。
+// 改完不动 Session：当前这台设备继续可用，其他设备下次登录才需要新密码。
+func (s *sUser) ChangePassword(ctx context.Context, in model.UserPasswordInput) error {
+	cols := dao.User.Columns()
+
+	var user *entity.User
+	if err := dao.User.Ctx(ctx).WherePri(in.ID).Scan(&user); err != nil {
+		return err
+	}
+	if user == nil {
+		return gerror.NewCode(gcode.CodeNotFound, "用户不存在")
+	}
+	if user.Status != consts.UserStatusNormal {
+		return gerror.NewCode(gcode.CodeNotAuthorized, "账号已被禁用")
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(in.OldPassword)); err != nil {
+		return gerror.NewCode(gcode.CodeValidationFailed, "原密码不正确")
+	}
+
+	// 新旧相同等于没改，直接拦掉，免得用户以为改成功了
+	if bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(in.NewPassword)) == nil {
+		return gerror.NewCode(gcode.CodeValidationFailed, "新密码不能与原密码相同")
+	}
+
+	hashed, err := bcrypt.GenerateFromPassword([]byte(in.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	_, err = dao.User.Ctx(ctx).WherePri(user.Id).Data(g.Map{cols.Password: string(hashed)}).Update()
+	return err
+}
+
 // AdminSave 编辑用户：昵称、角色、状态。
 // operatorID 是当前登录的管理员，用来拦住「把自己锁在门外」的操作。
 func (s *sUser) AdminSave(ctx context.Context, in model.UserSaveInput, operatorID uint64) (uint64, error) {

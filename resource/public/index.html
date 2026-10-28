@@ -435,6 +435,32 @@
   </form>
 </div>
 
+<div class="panel-modal" id="pwdModal">
+  <form class="panel" onsubmit="return submitPassword(event)">
+    <div class="ph">
+      <h3>修改密码</h3>
+      <button type="button" class="link" onclick="closePanel('pwdModal')">关闭</button>
+    </div>
+    <div class="pb">
+      <div class="field">
+        <input id="pwOld" type="password" placeholder="原密码" autocomplete="current-password">
+      </div>
+      <div class="field">
+        <input id="pwNew" type="password" placeholder="新密码（6-32 位）" autocomplete="new-password">
+      </div>
+      <div class="field">
+        <input id="pwNew2" type="password" placeholder="再输一次新密码" autocomplete="new-password">
+      </div>
+      <div class="tip" id="pwdTip"></div>
+    </div>
+    <div class="pf">
+      <span style="font-size:12px;color:#999;margin-right:auto">改完当前登录不会掉线</span>
+      <button class="btn ghost sm" type="button" onclick="closePanel('pwdModal')">取消</button>
+      <button class="btn" id="pwdBtn" type="submit">确认修改</button>
+    </div>
+  </form>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -597,8 +623,9 @@ function renderUser() {
   if (me) {
     el.innerHTML = `<span class="uname">👤 ${me.nickname || me.username}</span>
       <button class="link" onclick="openProfile()" style="margin-left:10px">资料</button>
-      ${me.role === 1 ? '<a class="link" href="/admin.html" style="margin-left:10px">管理后台</a>' : ''}
-      <button class="link" onclick="logout()" style="margin-left:10px">退出</button>`;
+      <button class="link" onclick="openPassword()" style="margin-left:8px">改密码</button>
+      ${me.role === 1 ? '<a class="link" href="/admin.html" style="margin-left:8px">管理后台</a>' : ''}
+      <button class="link" onclick="logout()" style="margin-left:8px">退出</button>`;
   } else {
     el.innerHTML = '<button class="btn ghost" onclick="openLogin()">登录 / 注册</button>';
   }
@@ -825,6 +852,46 @@ async function clearCart() {
   } catch (e) {
     toast(e.message);
   }
+}
+
+/* ---------------- 修改密码 ---------------- */
+
+function openPassword() {
+  if (!me) { openLogin('login'); return; }
+  ['pwOld', 'pwNew', 'pwNew2'].forEach((id) => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('pwdTip').textContent = '';
+  document.getElementById('pwdModal').classList.add('show');
+}
+
+async function submitPassword(e) {
+  e.preventDefault();
+  const tip = document.getElementById('pwdTip');
+  const btn = document.getElementById('pwdBtn');
+  const oldPassword = document.getElementById('pwOld').value;
+  const newPassword = document.getElementById('pwNew').value;
+  const again = document.getElementById('pwNew2').value;
+
+  // 后端也会校验一遍，这里只是省一次往返
+  if (!oldPassword || !newPassword) { tip.textContent = '原密码和新密码都要填'; return false; }
+  if (newPassword.length < 6 || newPassword.length > 32) { tip.textContent = '新密码长度需在 6-32 之间'; return false; }
+  if (newPassword !== again) { tip.textContent = '两次输入的新密码不一致'; return false; }
+  if (newPassword === oldPassword) { tip.textContent = '新密码不能与原密码相同'; return false; }
+
+  btn.disabled = true;
+  btn.textContent = '提交中…';
+  try {
+    await api('/user/password', { method: 'POST', body: { oldPassword, newPassword } });
+    closePanel('pwdModal');
+    toast('密码已修改，下次登录请用新密码');
+  } catch (err) {
+    tip.textContent = err.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '确认修改';
+  }
+  return false;
 }
 
 /* ---------------- 订单 ---------------- */

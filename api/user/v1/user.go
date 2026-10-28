@@ -67,6 +67,17 @@ type ProfileRes struct {
 	Role     uint   `json:"role"     dc:"角色：0普通用户 1管理员"`
 }
 
+// PasswordReq 修改自己的密码。必须验原密码：只会话还不够，
+// 否则别人拿到没锁屏的浏览器就能直接把账号密码换掉。
+type PasswordReq struct {
+	g.Meta      `path:"/user/password" method:"post" summary:"修改密码" tags:"用户"`
+	OldPassword string `json:"oldPassword" v:"required#请输入原密码"                          dc:"原密码"`
+	NewPassword string `json:"newPassword" v:"required|length:6,32#请输入新密码|密码长度需在6-32之间" dc:"新密码"`
+}
+
+// PasswordRes 修改结果。改完不踢当前会话，用户不用重新登录。
+type PasswordRes struct{}
+
 // LogoutReq 退出登录
 type LogoutReq struct {
 	g.Meta `path:"/user/logout" method:"post" summary:"退出登录" tags:"用户"`
