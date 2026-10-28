@@ -16,7 +16,7 @@ func (c *ControllerV1) Pay(ctx context.Context, req *v1.PayReq) (res *v1.PayRes,
 	}
 	return &v1.PayRes{
 		Status:     consts.OrderStatusPaid,
-		StatusText: statusText(consts.OrderStatusPaid),
+		StatusText: consts.OrderStatusText(consts.OrderStatusPaid),
 		PaidAt:     formatTime(paidAt),
 	}, nil
 }

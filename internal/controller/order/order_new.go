@@ -11,7 +11,6 @@ import (
 	"github.com/gogf/gf/v2/os/gtime"
 
 	"goshop/api/order"
-	"goshop/internal/consts"
 	"goshop/internal/middleware"
 )
 
@@ -26,23 +25,6 @@ func NewV1() order.IOrderV1 {
 // currentUserID 从 Auth 中间件写入的上下文变量中取当前登录用户
 func currentUserID(ctx context.Context) uint64 {
 	return g.RequestFromCtx(ctx).GetCtxVar(middleware.CtxUserID).Uint64()
-}
-
-// statusText 订单状态文案
-func statusText(status uint) string {
-	switch status {
-	case consts.OrderStatusPending:
-		return "待付款"
-	case consts.OrderStatusPaid:
-		return "已付款"
-	case consts.OrderStatusShipped:
-		return "已发货"
-	case consts.OrderStatusFinished:
-		return "已完成"
-	case consts.OrderStatusCancelled:
-		return "已取消"
-	}
-	return "未知状态"
 }
 
 // formatTime 时间格式化，空值返回空字符串

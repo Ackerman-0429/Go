@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>管理后台 · GoShop</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    background: #f5f6f8; color: #1a1a1a; line-height: 1.6;
+  }
+  a { text-decoration: none; }
+  header {
+    background: #fff; border-bottom: 1px solid #e8e8e8;
+    padding: 14px 24px; display: flex; align-items: center; gap: 24px;
+    position: sticky; top: 0; z-index: 10;
+  }
+  header h1 { font-size: 17px; font-weight: 600; white-space: nowrap; }
+  header h1 span { color: #e4393c; }
+  .tabs { display: flex; gap: 4px; background: #f2f3f5; padding: 4px; border-radius: 10px; }
+  .tabs button {
+    border: none; background: none; padding: 6px 18px; border-radius: 8px;
+    font-size: 13px; cursor: pointer; color: #555; transition: all .15s;
+  }
+  .tabs button.on { background: #fff; color: #e4393c; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .head-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+  .uname { font-size: 13px; color: #444; white-space: nowrap; }
+  .btn {
+    border: none; border-radius: 8px; padding: 8px 16px; font-size: 13px;
+    cursor: pointer; background: #e4393c; color: #fff; transition: opacity .15s;
+  }
+  .btn:hover { opacity: .88; }
+  .btn:disabled { background: #ccc; cursor: not-allowed; }
+  .btn.ghost { background: #fff; border: 1px solid #ddd; color: #333; }
+  .btn.ghost:hover { border-color: #e4393c; color: #e4393c; }
+  .btn.sm { padding: 5px 10px; font-size: 12px; border-radius: 6px; }
+  .btn.danger { background: #fff; border: 1px solid #f0c0c0; color: #d33; }
+  .btn.danger:hover { background: #fff5f5; border-color: #d33; color: #d33; }
+
+  main { padding: 20px 24px 60px; max-width: 1400px; margin: 0 auto; }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 20px; }
+  .stat {
+    background: #fff; border-radius: 12px; padding: 16px 18px;
+    border: 1px solid #eee; cursor: default;
+  }
+  .stat.clickable { cursor: pointer; }
+  .stat.clickable:hover { border-color: #e4393c; }
+  .stat .k { font-size: 12px; color: #888; }
+  .stat .v { font-size: 24px; font-weight: 600; margin-top: 2px; }
+  .stat .v small { font-size: 13px; font-weight: 400; color: #888; margin-left: 2px; }
+  .stat.warn .v { color: #e4393c; }
+
+  .panel { background: #fff; border-radius: 12px; border: 1px solid #eee; overflow: hidden; }
+  .panel.hide { display: none; }
+  .toolbar {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    padding: 14px 16px; border-bottom: 1px solid #f0f0f0;
+  }
+  .toolbar input, .toolbar select {
+    padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px;
+    font-size: 13px; outline: none; background: #fff; color: #333;
+  }
+  .toolbar input:focus, .toolbar select:focus { border-color: #e4393c; }
+  .toolbar .grow { flex: 1; }
+  .toolbar .spacer { margin-left: auto; }
+
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 11px 14px; text-align: left; white-space: nowrap; }
+  th { background: #fafafa; color: #666; font-weight: 500; border-bottom: 1px solid #f0f0f0; }
+  td { border-bottom: 1px solid #f5f5f5; color: #333; }
+  tbody tr:hover { background: #fffcfc; }
+  .thumb { width: 38px; height: 38px; border-radius: 6px; object-fit: cover; background: #f2f2f2; vertical-align: middle; }
+  .name-cell { display: flex; align-items: center; gap: 10px; }
+  .name-cell div { white-space: normal; min-width: 160px; }
+  .name-cell small { color: #999; display: block; font-size: 11px; }
+  .price { color: #e4393c; font-weight: 600; }
+  .tag {
+    display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 11px; line-height: 18px;
+  }
+  .tag.on { background: #eaf7ee; color: #1a9c4a; }
+  .tag.off { background: #f3f3f3; color: #999; }
+  .tag.s0 { background: #fff7e6; color: #c87a00; }
+  .tag.s1 { background: #eef4ff; color: #2b6cd4; }
+  .tag.s2 { background: #f0f0ff; color: #5b4dd6; }
+  .tag.s3 { background: #eaf7ee; color: #1a9c4a; }
+  .tag.s4 { background: #f3f3f3; color: #999; }
+  .ops { display: flex; gap: 8px; }
+  .muted { color: #999; }
+  .pager { display: flex; align-items: center; gap: 12px; padding: 14px 16px; font-size: 13px; color: #666; }
+  .pager .spacer { margin-left: auto; }
+  .empty { padding: 40px; text-align: center; color: #999; font-size: 13px; }
+
+  /* 弹窗 */
+  .modal {
+    position: fixed; inset: 0; background: rgba(0,0,0,.35); display: none;
+    align-items: center; justify-content: center; z-index: 50; padding: 20px;
+  }
+  .modal.show { display: flex; }
+  .dialog {
+    background: #fff; border-radius: 14px; width: 100%; max-width: 620px;
+    max-height: 90vh; overflow-y: auto; padding: 22px 24px;
+  }
+  .dialog h3 { font-size: 16px; margin-bottom: 4px; }
+  .dialog .hint { font-size: 12px; color: #999; margin-bottom: 16px; }
+  .field { margin-bottom: 13px; }
+  .field label { display: block; font-size: 12px; color: #666; margin-bottom: 5px; }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 9px 12px; border: 1px solid #ddd; border-radius: 8px;
+    font-size: 13px; font-family: inherit; outline: none;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: #e4393c; }
+  .field textarea { min-height: 70px; resize: vertical; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .dialog-foot { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+  /* 提示 */
+  #toast {
+    position: fixed; left: 50%; bottom: 40px; transform: translateX(-50%) translateY(20px);
+    background: #333; color: #fff; padding: 10px 20px; border-radius: 8px; font-size: 13px;
+    opacity: 0; pointer-events: none; transition: all .25s; z-index: 99;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #toast.err { background: #d33; }
+
+  /* 拦截页：未登录 / 非管理员 */
+  #gate {
+    position: fixed; inset: 0; background: #f5f6f8; display: none;
+    align-items: center; justify-content: center; z-index: 100;
+  }
+  #gate.show { display: flex; }
+  .gate-card {
+    background: #fff; border-radius: 14px; padding: 36px 40px; text-align: center;
+    max-width: 420px; border: 1px solid #eee;
+  }
+  .gate-card .icon {
+    width: 54px; height: 54px; margin: 0 auto 14px; border-radius: 50%;
+    background: #fff0f0; color: #e4393c; font-size: 26px; line-height: 54px;
+  }
+  .gate-card h2 { font-size: 16px; margin-bottom: 8px; }
+  .gate-card p { font-size: 13px; color: #888; margin-bottom: 20px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>GoShop <span>管理后台</span></h1>
+  <nav class="tabs">
+    <button data-tab="goods" class="on">商品管理</button>
+    <button data-tab="orders">订单管理</button>
+  </nav>
+  <div class="head-right">
+    <span class="uname" id="who"></span>
+    <a class="btn ghost" href="/">返回商城</a>
+    <button class="btn ghost" id="logoutBtn">退出</button>
+  </div>
+</header>
+
+<main>
+  <section class="stats" id="stats"></section>
+
+  <!-- 商品管理 -->
+  <section class="panel" id="panel-goods">
+    <div class="toolbar">
+      <input id="gKeyword" placeholder="搜索商品名称" style="width:200px">
+      <select id="gCategory" style="width:150px"></select>
+      <select id="gStatus" style="width:120px">
+        <option value="-1">全部状态</option>
+        <option value="1">在售</option>
+        <option value="0">已下架</option>
+      </select>
+      <button class="btn ghost sm" id="gSearch">查询</button>
+      <button class="btn sm spacer" id="gCreate">+ 新建商品</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:60px">ID</th>
+            <th>商品</th>
+            <th style="width:110px">价格</th>
+            <th style="width:80px">库存</th>
+            <th style="width:80px">销量</th>
+            <th style="width:90px">状态</th>
+            <th style="width:210px">操作</th>
+          </tr>
+        </thead>
+        <tbody id="goodsBody"></tbody>
+      </table>
+    </div>
+    <div class="pager" id="goodsPager"></div>
+  </section>
+
+  <!-- 订单管理 -->
+  <section class="panel hide" id="panel-orders">
+    <div class="toolbar">
+      <select id="oStatus" style="width:140px">
+        <option value="-1">全部状态</option>
+        <option value="0">待付款</option>
+        <option value="1">已付款</option>
+        <option value="2">已发货</option>
+        <option value="3">已完成</option>
+        <option value="4">已取消</option>
+      </select>
+      <input id="oKeyword" placeholder="订单号 / 收货人" style="width:220px">
+      <button class="btn ghost sm" id="oSearch">查询</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:200px">订单号</th>
+            <th style="width:90px">用户</th>
+            <th>商品</th>
+            <th style="width:110px">金额</th>
+            <th style="width:90px">状态</th>
+            <th>收货人</th>
+            <th style="width:150px">下单时间</th>
+            <th style="width:160px">操作</th>
+          </tr>
+        </thead>
+        <tbody id="orderBody"></tbody>
+      </table>
+    </div>
+    <div class="pager" id="orderPager"></div>
+  </section>
+</main>
+
+<!-- 商品编辑弹窗 -->
+<div class="modal" id="goodsModal">
+  <div class="dialog">
+    <h3 id="goodsTitle">新建商品</h3>
+    <p class="hint">售价支持两位小数；图片字段可直接粘贴 JSON 数组字符串。</p>
+    <form id="goodsForm">
+      <input type="hidden" name="id" id="fId">
+      <div class="row2">
+        <div class="field">
+          <label>所属分类</label>
+          <select name="categoryId" id="fCategory"></select>
+        </div>
+        <div class="field">
+          <label>状态</label>
+          <select name="status" id="fStatus">
+            <option value="1">上架在售</option>
+            <option value="0">下架隐藏</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>商品名称</label>
+        <input name="name" id="fName" placeholder="2-100 个字符" required>
+      </div>
+      <div class="field">
+        <label>副标题 / 卖点</label>
+        <input name="subtitle" id="fSubtitle" placeholder="选填">
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>售价（元）</label>
+          <input name="price" id="fPrice" type="number" step="0.01" min="0.01" placeholder="0.00" required>
+        </div>
+        <div class="field">
+          <label>库存</label>
+          <input name="stock" id="fStock" type="number" min="0" step="1" value="0">
+        </div>
+      </div>
+      <div class="field">
+        <label>封面图 URL</label>
+        <input name="cover" id="fCover" placeholder="https://...">
+      </div>
+      <div class="field">
+        <label>多图（JSON 数组）</label>
+        <input name="images" id="fImages" placeholder='["url1","url2"]'>
+      </div>
+      <div class="field">
+        <label>商品详情</label>
+        <textarea name="detail" id="fDetail"></textarea>
+      </div>
+      <div class="dialog-foot">
+        <button type="button" class="btn ghost" id="goodsCancel">取消</button>
+        <button type="submit" class="btn" id="goodsSubmit">保存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<div id="gate">
+  <div class="gate-card">
+    <div class="icon" id="gateIcon">!</div>
+    <h2 id="gateTitle">需要管理员权限</h2>
+    <p id="gateDesc">请使用管理员账号登录后再访问后台。</p>
+    <a class="btn" href="/" id="gateBtn">返回商城登录</a>
+  </div>
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// 状态
+// ---------------------------------------------------------------------------
+const state = {
+  tab: 'goods',
+  categories: [],
+  me: null,
+  goods: { page: 1, pageSize: 10, keyword: '', categoryId: 0, status: -1, total: 0 },
+  orders: { page: 1, pageSize: 10, keyword: '', status: -1, total: 0 },
+};
+
+// 列表里已含完整字段，编辑弹窗直接从缓存回填，省一次详情请求
+let goodsCache = [];
+
+// ---------------------------------------------------------------------------
+// 请求封装：统一处理登录态与权限
+// ---------------------------------------------------------------------------
+async function api(path, opts = {}) {
+  const res = await fetch(path, { credentials: 'same-origin', ...opts });
+  let json;
+  try {
+    json = await res.json();
+  } catch (e) {
+    throw new Error('服务响应异常');
+  }
+  if (json.code === 61) {
+    gate('请先登录', '后台管理需要登录态，请先到商城用管理员账号登录。');
+    throw new Error('未登录');
+  }
+  if (json.code === 40301) {
+    gate('需要管理员权限', '当前账号不是管理员，无法进入后台。如需使用，请让管理员把该账号设为管理员角色。');
+    throw new Error('无权限');
+  }
+  if (json.code !== 0) {
+    throw new Error(json.message || '请求失败');
+  }
+  return json.data;
+}
+
+function post(path, data) {
+  const body = new URLSearchParams();
+  Object.keys(data).forEach((k) => body.append(k, data[k] == null ? '' : data[k]));
+  return api(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: body.toString(),
+  });
+}
+
+function gate(title, desc) {
+  document.getElementById('gateTitle').textContent = title;
+  document.getElementById('gateDesc').textContent = desc;
+  document.getElementById('gate').classList.add('show');
+}
+
+let toastTimer = null;
+function toast(msg, isErr) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show' + (isErr ? ' err' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = ''; }, 2200);
+}
+
+const esc = (s) => String(s == null ? '' : s)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+const money = (n) => '¥' + Number(n || 0).toFixed(2);
+
+// ---------------------------------------------------------------------------
+// 概览
+// ---------------------------------------------------------------------------
+async function loadStats() {
+  try {
+    const s = await api('/admin/stats');
+    const cards = [
+      { k: '今日订单', v: s.todayOrderCount + ' 单' },
+      { k: '今日销售额', v: money(s.todaySales) },
+      { k: '待发货', v: s.pendingShipCount + ' 单', warn: s.pendingShipCount > 0, click: true },
+      { k: '累计订单', v: s.totalOrderCount + ' 单' },
+      { k: '在售商品', v: s.onSaleGoodsCount + ' 件' },
+      { k: '注册用户', v: s.userCount + ' 人' },
+    ];
+    document.getElementById('stats').innerHTML = cards.map((c) => `
+      <div class="stat ${c.warn ? 'warn' : ''} ${c.click ? 'clickable' : ''}"
+           ${c.click ? 'onclick="jumpPending()"' : ''}>
+        <div class="k">${c.k}</div>
+        <div class="v">${c.v}</div>
+      </div>`).join('');
+  } catch (e) {
+    // 权限错误已由 gate 处理
+  }
+}
+
+function jumpPending() {
+  switchTab('orders');
+  document.getElementById('oStatus').value = '1';
+  state.orders.page = 1;
+  state.orders.status = 1;
+  loadOrders();
+}
+
+// ---------------------------------------------------------------------------
+// 分类下拉
+// ---------------------------------------------------------------------------
+function flattenCategories() {
+  const tops = state.categories.filter((c) => c.parentId === 0);
+  const out = [];
+  tops.forEach((t) => {
+    out.push({ id: t.id, name: t.name, depth: 0 });
+    state.categories
+      .filter((c) => c.parentId === t.id)
+      .forEach((c) => out.push({ id: c.id, name: c.name, depth: 1 }));
+  });
+  // 兜底：父分类不在列表里的孤儿节点也要显示
+  state.categories.forEach((c) => {
+    if (!out.some((o) => o.id === c.id)) out.push({ id: c.id, name: c.name, depth: 0 });
+  });
+  return out;
+}
+
+function renderCategorySelects() {
+  const list = flattenCategories();
+  const label = (c) => (c.depth ? '　└ ' : '') + c.name;
+
+  document.getElementById('gCategory').innerHTML =
+    '<option value="0">全部分类</option>' +
+    list.map((c) => `<option value="${c.id}">${esc(label(c))}</option>`).join('');
+
+  document.getElementById('fCategory').innerHTML =
+    list.map((c) => `<option value="${c.id}">${esc(label(c))}</option>`).join('');
+}
+
+function categoryName(id) {
+  const c = state.categories.find((x) => x.id === Number(id));
+  return c ? c.name : '未分类';
+}
+
+// ---------------------------------------------------------------------------
+// 商品
+// ---------------------------------------------------------------------------
+async function loadGoods() {
+  const g = state.goods;
+  const qs = new URLSearchParams({
+    page: g.page, pageSize: g.pageSize,
+    keyword: g.keyword, categoryId: g.categoryId, status: g.status,
+  });
+  try {
+    const d = await api('/admin/goods/list?' + qs.toString());
+    g.total = d.total;
+    renderGoods(d.list || []);
+    renderPager('goodsPager', d.page, d.pageSize, d.total, (p) => {
+      state.goods.page = p;
+      loadGoods();
+    });
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
+
+function renderGoods(list) {
+  goodsCache = list; // 供编辑弹窗回填，省一次详情请求
+  const body = document.getElementById('goodsBody');
+  if (!list.length) {
+    body.innerHTML = '<tr><td colspan="7" class="empty">没有符合条件的商品</td></tr>';
+    return;
+  }
+  body.innerHTML = list.map((g) => `
+    <tr>
+      <td class="muted">${g.id}</td>
+      <td>
+        <div class="name-cell">
+          <img class="thumb" src="${esc(g.cover)}" alt="" onerror="this.style.visibility='hidden'">
+          <div>${esc(g.name)}<small>${esc(g.subtitle || '—')} · ${esc(categoryName(g.categoryId))}</small></div>
+        </div>
+      </td>
+      <td class="price">${money(g.price)}</td>
+      <td>${g.stock}</td>
+      <td class="muted">${g.sales}</td>
+      <td><span class="tag ${g.status === 1 ? 'on' : 'off'}">${g.status === 1 ? '在售' : '已下架'}</span></td>
+      <td>
+        <div class="ops">
+          <button class="btn ghost sm" onclick="editGoods(${g.id})">编辑</button>
+          <button class="btn ghost sm" onclick="toggleGoods(${g.id}, ${g.status === 1 ? 0 : 1})">
+            ${g.status === 1 ? '下架' : '上架'}
+          </button>
+          <button class="btn danger sm" onclick="deleteGoods(${g.id})">删除</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+// 列表里的完整字段已够填表单，直接用缓存，省一次请求
+function editGoods(id) {
+  const g = goodsCache.find((x) => x.id === id);
+  if (!g) return;
+  document.getElementById('goodsTitle').textContent = '编辑商品 #' + g.id;
+  document.getElementById('fId').value = g.id;
+  document.getElementById('fCategory').value = g.categoryId;
+  document.getElementById('fStatus').value = g.status;
+  document.getElementById('fName').value = g.name;
+  document.getElementById('fSubtitle').value = g.subtitle || '';
+  document.getElementById('fPrice').value = g.price;
+  document.getElementById('fStock').value = g.stock;
+  document.getElementById('fCover').value = g.cover || '';
+  document.getElementById('fImages').value = g.images || '';
+  document.getElementById('fDetail').value = g.detail || '';
+  document.getElementById('goodsModal').classList.add('show');
+}
+
+function openGoodsModal() {
+  document.getElementById('goodsForm').reset();
+  document.getElementById('fId').value = '';
+  document.getElementById('goodsTitle').textContent = '新建商品';
+  document.getElementById('fStatus').value = '1';
+  document.getElementById('fStock').value = '0';
+  document.getElementById('goodsModal').classList.add('show');
+}
+
+async function toggleGoods(id, status) {
+  try {
+    await post('/admin/goods/status', { id, status });
+    toast(status === 1 ? '已上架' : '已下架');
+    loadGoods();
+    loadStats();
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
+
+async function deleteGoods(id) {
+  const g = goodsCache.find((x) => x.id === id);
+  const name = g ? g.name : '#' + id;
+  if (!confirm(`确认删除「${name}」？该商品会从购物车中移除，历史订单不受影响。`)) return;
+  try {
+    await post('/admin/goods/delete', { id });
+    toast('已删除');
+    loadGoods();
+    loadStats();
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
+
+async function submitGoods(e) {
+  e.preventDefault();
+  const form = new FormData(document.getElementById('goodsForm'));
+  const payload = {};
+  form.forEach((v, k) => { payload[k] = v; });
+  if (!payload.id) payload.id = 0;
+  const btn = document.getElementById('goodsSubmit');
+  btn.disabled = true;
+  try {
+    const d = await post('/admin/goods/save', payload);
+    toast(payload.id == 0 ? '已创建，ID ' + d.id : '已保存');
+    document.getElementById('goodsModal').classList.remove('show');
+    loadGoods();
+    loadStats();
+  } catch (err) {
+    toast(err.message, true);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 订单
+// ---------------------------------------------------------------------------
+async function loadOrders() {
+  const o = state.orders;
+  const qs = new URLSearchParams({
+    page: o.page, pageSize: o.pageSize, keyword: o.keyword, status: o.status,
+  });
+  try {
+    const d = await api('/admin/order/list?' + qs.toString());
+    o.total = d.total;
+    renderOrders(d.list || []);
+    renderPager('orderPager', d.page, d.pageSize, d.total, (p) => {
+      state.orders.page = p;
+      loadOrders();
+    });
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
+
+function renderOrders(list) {
+  const body = document.getElementById('orderBody');
+  if (!list.length) {
+    body.innerHTML = '<tr><td colspan="8" class="empty">没有符合条件的订单</td></tr>';
+    return;
+  }
+  body.innerHTML = list.map((o) => {
+    let ops = '<span class="muted">—</span>';
+    if (o.status === 1) {
+      ops = `<button class="btn sm" onclick="shipOrder(${o.id})">发货</button>`;
+    } else if (o.status === 2) {
+      ops = `<button class="btn ghost sm" onclick="finishOrder(${o.id})">标记完成</button>`;
+    }
+    return `
+      <tr>
+        <td class="muted" style="font-size:12px">${esc(o.orderNo)}</td>
+        <td>${esc(o.username || ('#' + o.userId))}</td>
+        <td>
+          <div style="white-space:normal;min-width:150px">
+            ${esc(o.firstName || '—')}
+            <small style="color:#999;display:block">共 ${o.quantity} 件 / ${o.itemCount} 种</small>
+          </div>
+        </td>
+        <td class="price">${money(o.totalAmount)}</td>
+        <td><span class="tag s${o.status}">${esc(o.statusText)}</span></td>
+        <td>
+          <div style="white-space:normal;min-width:140px">
+            ${esc(o.receiverName)} ${esc(o.receiverPhone)}
+            <small style="color:#999;display:block">${esc(o.receiverAddress)}</small>
+          </div>
+        </td>
+        <td class="muted" style="font-size:12px">${esc(o.createdAt)}</td>
+        <td>${ops}</td>
+      </tr>`;
+  }).join('');
+}
+
+async function shipOrder(id) {
+  try {
+    await post('/admin/order/ship', { id });
+    toast('已发货');
+    loadOrders();
+    loadStats();
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
+
+async function finishOrder(id) {
+  try {
+    await post('/admin/order/finish', { id });
+    toast('订单已完成');
+    loadOrders();
+    loadStats();
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 分页
+// ---------------------------------------------------------------------------
+function renderPager(id, page, pageSize, total, onJump) {
+  const el = document.getElementById(id);
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+  el.innerHTML = `
+    <span>共 ${total} 条 · 第 ${page} / ${pages} 页</span>
+    <span class="spacer"></span>`;
+  const prev = document.createElement('button');
+  prev.className = 'btn ghost sm';
+  prev.textContent = '上一页';
+  prev.disabled = page <= 1;
+  prev.onclick = () => onJump(page - 1);
+  const next = document.createElement('button');
+  next.className = 'btn ghost sm';
+  next.textContent = '下一页';
+  next.disabled = page >= pages;
+  next.onclick = () => onJump(page + 1);
+  el.appendChild(prev);
+  el.appendChild(next);
+}
+
+// ---------------------------------------------------------------------------
+// Tab 切换与初始化
+// ---------------------------------------------------------------------------
+function switchTab(tab) {
+  state.tab = tab;
+  document.querySelectorAll('.tabs button').forEach((b) => {
+    b.classList.toggle('on', b.dataset.tab === tab);
+  });
+  document.getElementById('panel-goods').classList.toggle('hide', tab !== 'goods');
+  document.getElementById('panel-orders').classList.toggle('hide', tab !== 'orders');
+  if (tab === 'goods') loadGoods(); else loadOrders();
+}
+
+async function boot() {
+  // 1) 先确认登录态与角色
+  try {
+    state.me = await api('/user/info');
+  } catch (e) {
+    gate('请先登录', '后台管理需要登录态，请先到商城用管理员账号登录。');
+    return;
+  }
+  document.getElementById('who').textContent = `👤 ${state.me.nickname || state.me.username}`;
+
+  // 2) 概览与分类
+  await loadStats();
+  try {
+    const d = await api('/category/list');
+    state.categories = d.list || [];
+    renderCategorySelects();
+  } catch (e) { /* 分类拉不到不影响主流程 */ }
+
+  // 3) 默认展示商品
+  loadGoods();
+
+  // 4) 事件绑定
+  document.querySelectorAll('.tabs button').forEach((b) => {
+    b.onclick = () => switchTab(b.dataset.tab);
+  });
+  document.getElementById('gSearch').onclick = () => {
+    state.goods.keyword = document.getElementById('gKeyword').value.trim();
+    state.goods.categoryId = document.getElementById('gCategory').value;
+    state.goods.status = document.getElementById('gStatus').value;
+    state.goods.page = 1;
+    loadGoods();
+  };
+  document.getElementById('gCreate').onclick = openGoodsModal;
+  document.getElementById('goodsCancel').onclick = () => {
+    document.getElementById('goodsModal').classList.remove('show');
+  };
+  document.getElementById('goodsForm').onsubmit = submitGoods;
+  document.getElementById('oSearch').onclick = () => {
+    state.orders.keyword = document.getElementById('oKeyword').value.trim();
+    state.orders.status = document.getElementById('oStatus').value;
+    state.orders.page = 1;
+    loadOrders();
+  };
+  document.getElementById('oStatus').onchange = () => {
+    state.orders.status = document.getElementById('oStatus').value;
+    state.orders.page = 1;
+    loadOrders();
+  };
+  document.getElementById('logoutBtn').onclick = async () => {
+    try { await post('/user/logout', {}); } catch (e) { /* 忽略 */ }
+    location.href = '/';
+  };
+}
+
+boot();
+</script>
+</body>
+</html>

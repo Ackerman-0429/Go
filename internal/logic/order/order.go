@@ -157,7 +157,6 @@ func (s *sOrder) Create(ctx context.Context, in model.OrderCreateInput) (*model.
 // List 分页查询当前用户的订单，商品信息由明细聚合
 func (s *sOrder) List(ctx context.Context, in model.OrderListInput) ([]model.OrderListItem, int, error) {
 	orderCols := dao.Orders.Columns()
-	itemCols := dao.OrderItem.Columns()
 
 	m := dao.Orders.Ctx(ctx).Where(orderCols.UserId, in.UserID)
 	if in.Status >= 0 {
@@ -182,40 +181,27 @@ func (s *sOrder) List(ctx context.Context, in model.OrderListInput) ([]model.Ord
 		ids = append(ids, o.Id)
 	}
 
-	var items []entity.OrderItem
-	if err := dao.OrderItem.Ctx(ctx).
-		WhereIn(itemCols.OrderId, ids).
-		OrderAsc(itemCols.Id).
-		Scan(&items); err != nil {
+	agg, err := aggregateItems(ctx, ids)
+	if err != nil {
 		return nil, 0, err
 	}
 
-	agg := make(map[uint64]*model.OrderListItem, len(orders))
+	out := make([]model.OrderListItem, 0, len(orders))
 	for _, o := range orders {
-		agg[o.Id] = &model.OrderListItem{
+		item := model.OrderListItem{
 			ID:          o.Id,
 			OrderNo:     o.OrderNo,
 			TotalAmount: o.TotalAmount,
 			Status:      o.Status,
 			CreatedAt:   o.CreatedAt,
 		}
-	}
-	for _, it := range items {
-		a, ok := agg[it.OrderId]
-		if !ok {
-			continue
+		if a := agg[o.Id]; a != nil {
+			item.Quantity = a.Quantity
+			item.ItemCount = a.ItemCount
+			item.FirstName = a.FirstName
+			item.FirstCover = a.FirstCover
 		}
-		if a.ItemCount == 0 {
-			a.FirstName = it.GoodsName
-			a.FirstCover = it.GoodsCover
-		}
-		a.ItemCount++
-		a.Quantity += it.Quantity
-	}
-
-	out := make([]model.OrderListItem, 0, len(orders))
-	for _, o := range orders {
-		out = append(out, *agg[o.Id])
+		out = append(out, item)
 	}
 	return out, total, nil
 }
@@ -333,4 +319,191 @@ func (s *sOrder) Pay(ctx context.Context, userID, orderID uint64) (*gtime.Time, 
 		return nil, err
 	}
 	return paidAt, nil
+}
+
+// itemAgg 订单明细的聚合结果。列表页只需要汇总件数、种类数和首个商品。
+type itemAgg struct {
+	Quantity   uint
+	ItemCount  int
+	FirstName  string
+	FirstCover string
+}
+
+// aggregateItems 按订单批量聚合明细，一次查询解决，避免 N+1。
+func aggregateItems(ctx context.Context, orderIDs []uint64) (map[uint64]*itemAgg, error) {
+	agg := make(map[uint64]*itemAgg, len(orderIDs))
+	if len(orderIDs) == 0 {
+		return agg, nil
+	}
+
+	cols := dao.OrderItem.Columns()
+	var items []entity.OrderItem
+	if err := dao.OrderItem.Ctx(ctx).
+		WhereIn(cols.OrderId, orderIDs).
+		OrderAsc(cols.Id).
+		Scan(&items); err != nil {
+		return nil, err
+	}
+
+	for _, it := range items {
+		a, ok := agg[it.OrderId]
+		if !ok {
+			a = &itemAgg{}
+			agg[it.OrderId] = a
+		}
+		if a.ItemCount == 0 {
+			a.FirstName = it.GoodsName
+			a.FirstCover = it.GoodsCover
+		}
+		a.ItemCount++
+		a.Quantity += it.Quantity
+	}
+	return agg, nil
+}
+
+// AdminList 全站订单列表，跨用户查询，支持按状态与订单号/收货人搜索。
+func (s *sOrder) AdminList(ctx context.Context, in model.OrderAdminListInput) ([]model.OrderAdminItem, int, error) {
+	cols := dao.Orders.Columns()
+	m := dao.Orders.Ctx(ctx)
+
+	if in.Status >= 0 {
+		m = m.Where(cols.Status, in.Status)
+	}
+	if in.Keyword != "" {
+		like := "%" + in.Keyword + "%"
+		m = m.Where("("+cols.OrderNo+" LIKE ? OR "+cols.ReceiverName+" LIKE ?)", like, like)
+	}
+
+	var (
+		orders []entity.Orders
+		total  int
+	)
+	if err := m.Page(in.Page, in.PageSize).
+		OrderDesc(cols.Id).
+		ScanAndCount(&orders, &total, false); err != nil {
+		return nil, 0, err
+	}
+	if len(orders) == 0 {
+		return []model.OrderAdminItem{}, total, nil
+	}
+
+	ids := make([]uint64, 0, len(orders))
+	userIDs := make([]uint64, 0, len(orders))
+	for _, o := range orders {
+		ids = append(ids, o.Id)
+		userIDs = append(userIDs, o.UserId)
+	}
+
+	agg, err := aggregateItems(ctx, ids)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// 批量取用户名，避免逐条查询
+	var users []entity.User
+	if err = dao.User.Ctx(ctx).WhereIn(dao.User.Columns().Id, userIDs).Scan(&users); err != nil {
+		return nil, 0, err
+	}
+	names := make(map[uint64]string, len(users))
+	for _, u := range users {
+		names[u.Id] = u.Username
+	}
+
+	out := make([]model.OrderAdminItem, 0, len(orders))
+	for _, o := range orders {
+		item := model.OrderAdminItem{
+			ID:              o.Id,
+			OrderNo:         o.OrderNo,
+			UserID:          o.UserId,
+			Username:        names[o.UserId],
+			TotalAmount:     o.TotalAmount,
+			Status:          o.Status,
+			ReceiverName:    o.ReceiverName,
+			ReceiverPhone:   o.ReceiverPhone,
+			ReceiverAddress: o.ReceiverAddress,
+			CreatedAt:       o.CreatedAt,
+			PaidAt:          o.PaidAt,
+		}
+		if a := agg[o.Id]; a != nil {
+			item.Quantity = a.Quantity
+			item.ItemCount = a.ItemCount
+			item.FirstName = a.FirstName
+		}
+		out = append(out, item)
+	}
+	return out, total, nil
+}
+
+// AdminShip 发货：已付款 → 已发货。
+// 条件里带上原状态，重复点击第二次影响 0 行，天然幂等。
+func (s *sOrder) AdminShip(ctx context.Context, orderID uint64) error {
+	return s.moveStatus(ctx, orderID, consts.OrderStatusPaid, consts.OrderStatusShipped, "订单不存在或当前状态不可发货")
+}
+
+// AdminFinish 确认完成：已发货 → 已完成。
+func (s *sOrder) AdminFinish(ctx context.Context, orderID uint64) error {
+	return s.moveStatus(ctx, orderID, consts.OrderStatusShipped, consts.OrderStatusFinished, "订单不存在或当前状态不可完成")
+}
+
+// moveStatus 订单状态流转，只有当前状态等于 from 才更新
+func (s *sOrder) moveStatus(ctx context.Context, orderID uint64, from, to uint, errMsg string) error {
+	cols := dao.Orders.Columns()
+	res, err := dao.Orders.Ctx(ctx).
+		WherePri(orderID).
+		Where(cols.Status, from).
+		Data(g.Map{cols.Status: to}).
+		Update()
+	if err != nil {
+		return err
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return gerror.NewCode(gcode.CodeNotFound, errMsg)
+	}
+	return nil
+}
+
+// Stats 后台概览统计。今日销售额只统计已付款及之后的订单，待付款和已取消不计入。
+func (s *sOrder) Stats(ctx context.Context) (*model.AdminStats, error) {
+	var (
+		stats = &model.AdminStats{}
+		err   error
+	)
+	orderCols := dao.Orders.Columns()
+	today := gtime.Now().StartOfDay()
+
+	if stats.TodayOrderCount, err = dao.Orders.Ctx(ctx).
+		WhereGTE(orderCols.CreatedAt, today).Count(); err != nil {
+		return nil, err
+	}
+
+	if stats.TodaySales, err = dao.Orders.Ctx(ctx).
+		WhereGTE(orderCols.CreatedAt, today).
+		WhereIn(orderCols.Status, []uint{
+			consts.OrderStatusPaid,
+			consts.OrderStatusShipped,
+			consts.OrderStatusFinished,
+		}).
+		Sum(orderCols.TotalAmount); err != nil {
+		return nil, err
+	}
+
+	if stats.PendingShipCount, err = dao.Orders.Ctx(ctx).
+		Where(orderCols.Status, consts.OrderStatusPaid).Count(); err != nil {
+		return nil, err
+	}
+	if stats.TotalOrderCount, err = dao.Orders.Ctx(ctx).Count(); err != nil {
+		return nil, err
+	}
+	if stats.OnSaleGoodsCount, err = dao.Goods.Ctx(ctx).
+		Where(dao.Goods.Columns().Status, consts.GoodsStatusOnSale).Count(); err != nil {
+		return nil, err
+	}
+	if stats.UserCount, err = dao.User.Ctx(ctx).Count(); err != nil {
+		return nil, err
+	}
+	return stats, nil
 }

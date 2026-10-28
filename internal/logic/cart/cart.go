@@ -100,7 +100,7 @@ func (s *sCart) List(ctx context.Context, userID uint64) (*model.CartListOutput,
 	var rows []cartJoinRow
 	err := dao.Cart.Ctx(ctx).As("c").
 		LeftJoin("goods g", "g.id = c.goods_id").
-		Fields("c.id AS cart_id, c.goods_id, c.quantity, " +
+		Fields("c.id AS cart_id, c.goods_id, c.quantity, "+
 			"g.name, g.subtitle, g.cover, g.price, g.stock, g.status AS goods_status").
 		Where("c.user_id", userID).
 		OrderAsc("c.id").

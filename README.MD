@@ -1,7 +1,7 @@
 # GoShop · GoFrame 网购系统（MVP）
 
 基于 GoFrame v2 的电商后端 MVP，已跑通「注册 → 浏览商品 → 加购物车 → 下单 → 支付」闭环，
-并附带一个原生 JS 的展示页。
+并附带两个原生 JS 页面：商城前台与后台管理。
 
 ## 环境要求
 
@@ -38,10 +38,11 @@ go run .                 # 或双击 scripts/start-dev.bat
 ```
 
 - 商城首页：http://127.0.0.1:8000/
+- 后台管理：http://127.0.0.1:8000/admin.html
 - 接口文档：http://127.0.0.1:8000/swagger/
 - OpenAPI：http://127.0.0.1:8000/api.json
 
-演示账号：`alice` / `bob`，密码 `123456`。
+演示账号：`alice`（管理员）/ `bob`（普通用户），密码 `123456`。
 
 ## 目录结构（GoFrame 官方分层）
 
@@ -63,7 +64,7 @@ manifest/
   ├── config/           运行配置
   ├── deploy/           k8s 部署模板
   └── sql/              建表与种子数据
-resource/public/        静态资源（商城展示页）
+resource/public/        前端页面：index.html 商城、admin.html 后台
 utility/                通用工具（金额分换算等）
 ```
 
@@ -78,8 +79,46 @@ utility/                通用工具（金额分换算等）
 | 商品 | `GET /goods/list`、`GET /goods/detail` | 仅返回上架商品 |
 | 购物车 | `POST /cart/add|update|delete|clear`、`GET /cart/list` | 需登录 |
 | 订单 | `POST /order/create|pay|cancel`、`GET /order/list|detail` | 需登录 |
+| 后台 | 见下方「后台管理」 | 需登录 + 管理员 |
 
 统一响应体：`{"code":0,"message":"OK","data":{...}}`，由 `ghttp.MiddlewareHandlerResponse` 输出。
+
+## 后台管理
+
+入口 `http://127.0.0.1:8000/admin.html`，商城页右上角也会给管理员显示「管理后台」入口。
+
+**权限模型**：`user.role` 字段（0 普通用户 / 1 管理员）。角色存在数据库里，不写 Session，
+所以管理员被降权后立即生效，不用等会话过期。三道关口：
+
+| 情形 | 返回 |
+| --- | --- |
+| 未登录 | `code: 61`（请先登录） |
+| 已登录但非管理员 | `code: 40301`（需要管理员权限） |
+| 管理员 | 正常数据 |
+
+中间件挂载顺序在 `internal/cmd/cmd.go`：`MiddlewareHandlerResponse` → `Auth` → `Admin`。
+
+**接口**（统一前缀 `/admin`）：
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/admin/stats` | 概览：今日订单/销售额、待发货、累计订单、在售商品、用户数 |
+| GET | `/admin/goods/list` | 商品列表，含下架商品，支持关键字/分类/状态筛选 |
+| POST | `/admin/goods/save` | 新建或编辑商品（`id` 为空即新建） |
+| POST | `/admin/goods/status` | 上下架 |
+| POST | `/admin/goods/delete` | 删除商品（同时清理购物车引用，订单快照不受影响） |
+| GET | `/admin/order/list` | 全站订单，支持状态/订单号/收货人筛选 |
+| POST | `/admin/order/ship` | 发货：已付款 → 已发货 |
+| POST | `/admin/order/finish` | 完成：已发货 → 已完成 |
+
+**给已有环境升级**：旧库没有 `role` 字段时执行
+
+```bash
+mysql -h 127.0.0.1 -u root -p gfstudy < manifest/sql/upgrade/20261028_user_role.sql
+# 该脚本会加列，并把演示账号 alice 设为管理员
+```
+
+手工指定管理员：`UPDATE user SET role = 1 WHERE username = 'xxx';`
 
 ## 代码生成约定
 
@@ -103,6 +142,8 @@ gf gen service   # internal/service 接口 + internal/logic/logic.go 聚合注�
 - **越权防护**：所有写操作都带 `user_id` 条件，查不到统一返回「不存在」。
 - **错误码**：业务错误用 `gerror.NewCode(gcode.Code...)`，由响应中间件统一格式化。
 - **时区**：DSN 带 `loc=Local&parseTime=true`，否则 datetime 会差 8 小时。
+- **状态流转靠条件更新**：发货/完成/取消都带 `WHERE status = 原状态`，重复点击第二次影响 0 行，
+  天然幂等，不需要额外加锁。
 
 ## 说明
 

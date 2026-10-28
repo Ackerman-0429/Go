@@ -30,6 +30,7 @@ type LoginRes struct {
 	ID       uint64 `json:"id"       dc:"用户ID"`
 	Username string `json:"username" dc:"用户名"`
 	Nickname string `json:"nickname" dc:"昵称"`
+	Role     uint   `json:"role"     dc:"角色：0普通用户 1管理员"`
 }
 
 // InfoReq 当前登录用户信息
@@ -44,6 +45,7 @@ type InfoRes struct {
 	Nickname string `json:"nickname" dc:"昵称"`
 	Email    string `json:"email"    dc:"邮箱"`
 	Phone    string `json:"phone"    dc:"手机号"`
+	Role     uint   `json:"role"     dc:"角色：0普通用户 1管理员"`
 }
 
 // LogoutReq 退出登录

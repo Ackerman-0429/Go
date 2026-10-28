@@ -1,0 +1,172 @@
+// Package v1 定义后台管理模块 v1 版本的接口出入参结构。
+// 所有接口都挂在 /admin 分组下，由 Auth + Admin 中间件保护。
+package v1
+
+import (
+	"github.com/gogf/gf/v2/frame/g"
+)
+
+// ---------------------------------------------------------------------------
+// 概览
+// ---------------------------------------------------------------------------
+
+// StatsReq 后台首页概览
+type StatsReq struct {
+	g.Meta `path:"/stats" method:"get" summary:"后台概览" tags:"后台"`
+}
+
+// StatsRes 概览统计
+type StatsRes struct {
+	TodayOrderCount  int     `json:"todayOrderCount"  dc:"今日订单数"`
+	TodaySales       float64 `json:"todaySales"       dc:"今日销售额"`
+	PendingShipCount int     `json:"pendingShipCount" dc:"待发货订单数"`
+	TotalOrderCount  int     `json:"totalOrderCount"  dc:"累计订单数"`
+	OnSaleGoodsCount int     `json:"onSaleGoodsCount" dc:"在售商品数"`
+	UserCount        int     `json:"userCount"        dc:"注册用户数"`
+}
+
+// ---------------------------------------------------------------------------
+// 商品管理
+// ---------------------------------------------------------------------------
+
+// GoodsListReq 后台商品列表，与前台不同：能看到下架商品
+type GoodsListReq struct {
+	g.Meta     `path:"/goods/list" method:"get" summary:"商品列表（含下架）" tags:"后台-商品"`
+	Page       int    `json:"page"       d:"1"  v:"min:1#页码最小为1"                  dc:"页码"`
+	PageSize   int    `json:"pageSize"   d:"10" v:"between:1,100#每页数量需在1-100之间" dc:"每页数量"`
+	Keyword    string `json:"keyword"                                              dc:"按商品名搜索"`
+	CategoryID uint64 `json:"categoryId"                                           dc:"按分类筛选，0 为全部"`
+	Status     int    `json:"status"     d:"-1" v:"in:-1,0,1#状态只能是-1/0/1"        dc:"按状态筛选，-1 全部"`
+}
+
+// GoodsItem 后台商品条目
+type GoodsItem struct {
+	ID         uint64  `json:"id"         dc:"商品ID"`
+	CategoryID uint64  `json:"categoryId" dc:"分类ID"`
+	Name       string  `json:"name"       dc:"商品名称"`
+	Subtitle   string  `json:"subtitle"   dc:"副标题"`
+	Price      float64 `json:"price"      dc:"售价"`
+	Stock      uint    `json:"stock"      dc:"库存"`
+	Cover      string  `json:"cover"      dc:"封面图"`
+	Images     string  `json:"images"     dc:"多图，JSON数组"`
+	Detail     string  `json:"detail"     dc:"商品详情"`
+	Sales      uint    `json:"sales"      dc:"销量"`
+	Status     uint    `json:"status"     dc:"状态：1上架 0下架"`
+	CreatedAt  string  `json:"createdAt"  dc:"创建时间"`
+}
+
+// GoodsListRes 分页结果
+type GoodsListRes struct {
+	List     []GoodsItem `json:"list"     dc:"商品列表"`
+	Total    int         `json:"total"    dc:"总条数"`
+	Page     int         `json:"page"     dc:"当前页"`
+	PageSize int         `json:"pageSize" dc:"每页数量"`
+}
+
+// GoodsSaveReq 新建或编辑商品，ID 为空表示新建
+type GoodsSaveReq struct {
+	g.Meta     `path:"/goods/save" method:"post" summary:"新建/编辑商品" tags:"后台-商品"`
+	ID         uint64  `json:"id"         dc:"商品ID，留空表示新建"`
+	CategoryID uint64  `json:"categoryId" v:"required|min:1#请选择分类|分类不合法"        dc:"分类ID"`
+	Name       string  `json:"name"       v:"required|length:2,100#请输入商品名称|商品名称长度需在2-100之间" dc:"商品名称"`
+	Subtitle   string  `json:"subtitle"   v:"max-length:150#副标题不能超过150个字符"    dc:"副标题"`
+	Price      float64 `json:"price"      v:"required|min:0.01#请输入售价|售价必须大于0"  dc:"售价"`
+	Stock      uint    `json:"stock"      dc:"库存"`
+	Cover      string  `json:"cover"      v:"max-length:255#封面地址过长"            dc:"封面图URL"`
+	Images     string  `json:"images"     dc:"多图JSON数组，如 [\"url1\",\"url2\"]"`
+	Detail     string  `json:"detail"     dc:"商品详情"`
+	Status     uint    `json:"status"     d:"1" v:"in:0,1#状态只能是0或1"             dc:"状态：1上架 0下架"`
+}
+
+// GoodsSaveRes 保存结果
+type GoodsSaveRes struct {
+	ID uint64 `json:"id" dc:"商品ID"`
+}
+
+// GoodsStatusReq 上下架
+type GoodsStatusReq struct {
+	g.Meta `path:"/goods/status" method:"post" summary:"商品上下架" tags:"后台-商品"`
+	ID     uint64 `json:"id"     v:"required|min:1#请提供商品ID|商品ID不合法" dc:"商品ID"`
+	Status uint   `json:"status" v:"in:0,1#状态只能是0或1"            dc:"目标状态：1上架 0下架"`
+}
+
+// GoodsStatusRes 操作结果
+type GoodsStatusRes struct {
+	ID     uint64 `json:"id"     dc:"商品ID"`
+	Status uint   `json:"status" dc:"当前状态"`
+}
+
+// GoodsDeleteReq 删除商品
+type GoodsDeleteReq struct {
+	g.Meta `path:"/goods/delete" method:"post" summary:"删除商品" tags:"后台-商品"`
+	ID     uint64 `json:"id" v:"required|min:1#请提供商品ID|商品ID不合法" dc:"商品ID"`
+}
+
+// GoodsDeleteRes 删除结果
+type GoodsDeleteRes struct{}
+
+// ---------------------------------------------------------------------------
+// 订单管理
+// ---------------------------------------------------------------------------
+
+// OrderListReq 全站订单列表
+type OrderListReq struct {
+	g.Meta   `path:"/order/list" method:"get" summary:"全站订单列表" tags:"后台-订单"`
+	Page     int    `json:"page"     d:"1"  v:"min:1#页码最小为1"                  dc:"页码"`
+	PageSize int    `json:"pageSize" d:"10" v:"between:1,100#每页数量需在1-100之间" dc:"每页数量"`
+	Status   int    `json:"status"   d:"-1" v:"in:-1,0,1,2,3,4#状态不合法"        dc:"按状态筛选，-1 全部"`
+	Keyword  string `json:"keyword"                                              dc:"按订单号/收货人搜索"`
+}
+
+// OrderItem 后台订单条目
+type OrderItem struct {
+	ID              uint64  `json:"id"              dc:"订单ID"`
+	OrderNo         string  `json:"orderNo"         dc:"订单号"`
+	UserID          uint64  `json:"userId"          dc:"下单用户ID"`
+	Username        string  `json:"username"        dc:"下单用户"`
+	TotalAmount     float64 `json:"totalAmount"     dc:"订单金额"`
+	Status          uint    `json:"status"          dc:"状态：0待付款 1已付款 2已发货 3已完成 4已取消"`
+	StatusText      string  `json:"statusText"      dc:"状态文案"`
+	Quantity        uint    `json:"quantity"        dc:"商品总件数"`
+	ItemCount       int     `json:"itemCount"       dc:"商品种类数"`
+	FirstName       string  `json:"firstName"       dc:"首个商品名称"`
+	ReceiverName    string  `json:"receiverName"    dc:"收货人"`
+	ReceiverPhone   string  `json:"receiverPhone"   dc:"收货电话"`
+	ReceiverAddress string  `json:"receiverAddress" dc:"收货地址"`
+	CreatedAt       string  `json:"createdAt"       dc:"下单时间"`
+	PaidAt          string  `json:"paidAt"          dc:"付款时间"`
+}
+
+// OrderListRes 分页结果
+type OrderListRes struct {
+	List     []OrderItem `json:"list"     dc:"订单列表"`
+	Total    int         `json:"total"    dc:"总条数"`
+	Page     int         `json:"page"     dc:"当前页"`
+	PageSize int         `json:"pageSize" dc:"每页数量"`
+}
+
+// OrderShipReq 发货，已付款 → 已发货
+type OrderShipReq struct {
+	g.Meta `path:"/order/ship" method:"post" summary:"订单发货" tags:"后台-订单"`
+	ID     uint64 `json:"id" v:"required|min:1#请提供订单ID|订单ID不合法" dc:"订单ID"`
+}
+
+// OrderShipRes 操作结果
+type OrderShipRes struct {
+	ID         uint64 `json:"id"         dc:"订单ID"`
+	Status     uint   `json:"status"     dc:"当前状态"`
+	StatusText string `json:"statusText" dc:"状态文案"`
+}
+
+// OrderFinishReq 确认完成，已发货 → 已完成
+type OrderFinishReq struct {
+	g.Meta `path:"/order/finish" method:"post" summary:"订单完成" tags:"后台-订单"`
+	ID     uint64 `json:"id" v:"required|min:1#请提供订单ID|订单ID不合法" dc:"订单ID"`
+}
+
+// OrderFinishRes 操作结果
+type OrderFinishRes struct {
+	ID         uint64 `json:"id"         dc:"订单ID"`
+	Status     uint   `json:"status"     dc:"当前状态"`
+	StatusText string `json:"statusText" dc:"状态文案"`
+}

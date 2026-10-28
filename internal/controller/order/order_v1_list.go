@@ -4,6 +4,7 @@ import (
 	"context"
 
 	v1 "goshop/api/order/v1"
+	"goshop/internal/consts"
 	"goshop/internal/model"
 	"goshop/internal/service"
 )
@@ -27,7 +28,7 @@ func (c *ControllerV1) List(ctx context.Context, req *v1.ListReq) (res *v1.ListR
 			OrderNo:     o.OrderNo,
 			TotalAmount: o.TotalAmount,
 			Status:      o.Status,
-			StatusText:  statusText(o.Status),
+			StatusText:  consts.OrderStatusText(o.Status),
 			Quantity:    o.Quantity,
 			ItemCount:   o.ItemCount,
 			FirstName:   o.FirstName,

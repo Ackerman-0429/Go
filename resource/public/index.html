@@ -457,7 +457,8 @@ function toast(msg) {
 /* ---------------- 商品 ---------------- */
 
 async function loadCats() {
-  catList = await api('/category/list');
+  // 接口返回的是 { list: [...] }，不能直接当数组遍历
+  catList = (await api('/category/list')).list || [];
   const nav = document.getElementById('cats');
   let html = '<div class="cat active" data-id="0">全部</div>';
   for (const c of catList) {
@@ -572,7 +573,8 @@ function renderUser() {
   const el = document.getElementById('userArea');
   if (me) {
     el.innerHTML = `<span class="uname">👤 ${me.nickname || me.username}</span>
-      <button class="link" onclick="logout()">退出</button>`;
+      ${me.role === 1 ? '<a class="link" href="/admin.html" style="margin-left:10px">管理后台</a>' : ''}
+      <button class="link" onclick="logout()" style="margin-left:10px">退出</button>`;
   } else {
     el.innerHTML = '<button class="btn ghost" onclick="openLogin()">登录 / 注册</button>';
   }

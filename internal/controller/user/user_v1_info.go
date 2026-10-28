@@ -34,5 +34,6 @@ func (c *ControllerV1) Info(ctx context.Context, req *v1.InfoReq) (res *v1.InfoR
 		Nickname: user.Nickname,
 		Email:    user.Email,
 		Phone:    user.Phone,
+		Role:     user.Role,
 	}, nil
 }

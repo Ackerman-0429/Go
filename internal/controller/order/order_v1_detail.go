@@ -4,6 +4,7 @@ import (
 	"context"
 
 	v1 "goshop/api/order/v1"
+	"goshop/internal/consts"
 	"goshop/internal/service"
 )
 
@@ -32,7 +33,7 @@ func (c *ControllerV1) Detail(ctx context.Context, req *v1.DetailReq) (res *v1.D
 		OrderNo:         o.OrderNo,
 		TotalAmount:     o.TotalAmount,
 		Status:          o.Status,
-		StatusText:      statusText(o.Status),
+		StatusText:      consts.OrderStatusText(o.Status),
 		ReceiverName:    o.ReceiverName,
 		ReceiverPhone:   o.ReceiverPhone,
 		ReceiverAddress: o.ReceiverAddress,

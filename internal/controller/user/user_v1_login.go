@@ -25,5 +25,6 @@ func (c *ControllerV1) Login(ctx context.Context, req *v1.LoginReq) (res *v1.Log
 		ID:       user.Id,
 		Username: user.Username,
 		Nickname: user.Nickname,
+		Role:     user.Role,
 	}, nil
 }

@@ -28,6 +28,7 @@ type UserColumns struct {
 	Email     string // 邮箱，可为空但不可重复
 	Phone     string // 手机号，可为空但不可重复
 	Status    string // 状态：1正常 0禁用
+	Role      string // 角色：0普通用户 1管理员
 	CreatedAt string //
 	UpdatedAt string //
 }
@@ -41,6 +42,7 @@ var userColumns = UserColumns{
 	Email:     "email",
 	Phone:     "phone",
 	Status:    "status",
+	Role:      "role",
 	CreatedAt: "created_at",
 	UpdatedAt: "updated_at",
 }

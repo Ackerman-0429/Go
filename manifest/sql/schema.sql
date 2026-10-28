@@ -27,6 +27,7 @@ CREATE TABLE `user` (
   `email`      varchar(100)             DEFAULT NULL   COMMENT '邮箱，可为空但不可重复',
   `phone`      varchar(20)              DEFAULT NULL   COMMENT '手机号，可为空但不可重复',
   `status`     tinyint unsigned NOT NULL DEFAULT 1     COMMENT '状态：1正常 0禁用',
+  `role`       tinyint unsigned NOT NULL DEFAULT 0     COMMENT '角色：0普通用户 1管理员',
   `created_at` datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),

@@ -19,6 +19,7 @@ type User struct {
 	Email     any         // 邮箱，可为空但不可重复
 	Phone     any         // 手机号，可为空但不可重复
 	Status    any         // 状态：1正常 0禁用
+	Role      any         // 角色：0普通用户 1管理员
 	CreatedAt *gtime.Time //
 	UpdatedAt *gtime.Time //
 }

@@ -17,6 +17,7 @@ type User struct {
 	Email     string      `json:"email"     orm:"email"      description:"邮箱，可为空但不可重复"`        // 邮箱，可为空但不可重复
 	Phone     string      `json:"phone"     orm:"phone"      description:"手机号，可为空但不可重复"`       // 手机号，可为空但不可重复
 	Status    uint        `json:"status"    orm:"status"     description:"状态：1正常 0禁用"`         // 状态：1正常 0禁用
+	Role      uint        `json:"role"      orm:"role"       description:"角色：0普通用户 1管理员"`      // 角色：0普通用户 1管理员
 	CreatedAt *gtime.Time `json:"createdAt" orm:"created_at" description:""`                   //
 	UpdatedAt *gtime.Time `json:"updatedAt" orm:"updated_at" description:""`                   //
 }
