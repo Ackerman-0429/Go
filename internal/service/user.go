@@ -25,6 +25,9 @@ type (
 		// AdminSave 编辑用户：昵称、角色、状态。
 		// operatorID 是当前登录的管理员，用来拦住「把自己锁在门外」的操作。
 		AdminSave(ctx context.Context, in model.UserSaveInput, operatorID uint64) (uint64, error)
+		// AdminCreate 后台直接新建用户。复用注册那套校验，额外放开角色与状态，
+		// 让管理员可以一次性建出「已启用的管理员」或「先建好但禁用」的账号。
+		AdminCreate(ctx context.Context, in model.UserCreateInput) (uint64, error)
 		// AdminResetPassword 管理员重置密码，不需要知道原密码。
 		AdminResetPassword(ctx context.Context, id uint64, password string) error
 	}

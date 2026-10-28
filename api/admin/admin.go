@@ -24,5 +24,6 @@ type IAdminV1 interface {
 	CategoryDelete(ctx context.Context, req *v1.CategoryDeleteReq) (res *v1.CategoryDeleteRes, err error)
 	UserList(ctx context.Context, req *v1.UserListReq) (res *v1.UserListRes, err error)
 	UserSave(ctx context.Context, req *v1.UserSaveReq) (res *v1.UserSaveRes, err error)
+	UserCreate(ctx context.Context, req *v1.UserCreateReq) (res *v1.UserCreateRes, err error)
 	UserResetPassword(ctx context.Context, req *v1.UserResetPasswordReq) (res *v1.UserResetPasswordRes, err error)
 }

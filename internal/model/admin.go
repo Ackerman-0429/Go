@@ -110,6 +110,19 @@ type UserAdminItem struct {
 type UserSaveInput struct {
 	ID       uint64
 	Nickname string
+	Email    string
+	Phone    string
+	Role     uint
+	Status   uint
+}
+
+// UserCreateInput 后台新建用户
+type UserCreateInput struct {
+	Username string
+	Password string
+	Nickname string
+	Email    string
+	Phone    string
 	Role     uint
 	Status   uint
 }

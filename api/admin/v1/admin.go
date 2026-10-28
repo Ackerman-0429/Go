@@ -264,8 +264,27 @@ type UserSaveReq struct {
 	g.Meta   `path:"/user/save" method:"post" summary:"编辑用户" tags:"后台-用户"`
 	ID       uint64 `json:"id"       v:"required|min:1#请提供用户ID|用户ID不合法"          dc:"用户ID"`
 	Nickname string `json:"nickname" v:"max-length:20#昵称不能超过20个字符"             dc:"昵称，留空则沿用用户名"`
+	Email    string `json:"email"    v:"email#邮箱格式不正确"                        dc:"邮箱，留空表示不填"`
+	Phone    string `json:"phone"    v:"phone-loose#手机号格式不正确"                  dc:"手机号，留空表示不填"`
 	Role     uint   `json:"role"     d:"0" v:"in:0,1#角色只能是0或1"                  dc:"角色：0普通用户 1管理员"`
 	Status   uint   `json:"status"   d:"1" v:"in:0,1#状态只能是0或1"                  dc:"状态：1正常 0禁用"`
+}
+
+// UserCreateReq 后台直接新建用户。管理员设置初始密码，用户后续可自行重置。
+type UserCreateReq struct {
+	g.Meta   `path:"/user/create" method:"post" summary:"新建用户" tags:"后台-用户"`
+	Username string `json:"username" v:"required|length:3,20#请输入用户名|用户名长度需在3-20之间" dc:"用户名，登录用，不可重复"`
+	Password string `json:"password" v:"required|length:6,32#请输入初始密码|密码长度需在6-32之间" dc:"初始密码"`
+	Nickname string `json:"nickname" v:"max-length:20#昵称不能超过20个字符"                  dc:"昵称，留空则沿用用户名"`
+	Email    string `json:"email"    v:"email#邮箱格式不正确"                             dc:"邮箱，可为空但不可重复"`
+	Phone    string `json:"phone"    v:"phone-loose#手机号格式不正确"                       dc:"手机号，可为空但不可重复"`
+	Role     uint   `json:"role"     d:"0" v:"in:0,1#角色只能是0或1"                       dc:"角色：0普通用户 1管理员"`
+	Status   uint   `json:"status"   d:"1" v:"in:0,1#状态只能是0或1"                       dc:"状态：1正常 0禁用"`
+}
+
+// UserCreateRes 新建结果
+type UserCreateRes struct {
+	ID uint64 `json:"id" dc:"用户ID"`
 }
 
 // UserSaveRes 保存结果

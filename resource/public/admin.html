@@ -269,6 +269,8 @@
         <option value="0">已禁用</option>
       </select>
       <button class="btn ghost sm" id="uSearch">查询</button>
+      <span class="spacer"></span>
+      <button class="btn sm" id="uCreate">+ 新建用户</button>
     </div>
     <div class="table-wrap">
       <table>
@@ -385,16 +387,36 @@
   </div>
 </div>
 
-<!-- 用户编辑弹窗 -->
+<!-- 用户编辑弹窗：新建与编辑共用，靠 uId 是否为空区分 -->
 <div class="modal" id="userModal">
-  <div class="dialog" style="max-width:520px">
+  <div class="dialog" style="max-width:560px">
     <h3 id="userTitle">编辑用户</h3>
-    <p class="hint">角色与状态存在数据库里，改完立即生效，无需等对方重新登录。</p>
+    <p class="hint" id="userHint">角色与状态存在数据库里，改完立即生效，无需等对方重新登录。</p>
     <form id="userForm">
       <input type="hidden" name="id" id="uId">
+      <div class="row2" id="uNameRow">
+        <div class="field">
+          <label>用户名</label>
+          <input name="username" id="uUsername" placeholder="3-20 个字符，登录用" maxlength="20">
+        </div>
+        <div class="field" id="uPwdWrap">
+          <label>初始密码</label>
+          <input name="password" id="uPassword" placeholder="6-32 个字符" maxlength="32">
+        </div>
+      </div>
       <div class="field">
         <label>昵称</label>
         <input name="nickname" id="uNick" placeholder="留空则显示用户名" maxlength="20">
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>邮箱</label>
+          <input name="email" id="uEmail" placeholder="选填，不可与其他账号重复" maxlength="100">
+        </div>
+        <div class="field">
+          <label>手机号</label>
+          <input name="phone" id="uPhone" placeholder="选填，11 位手机号" maxlength="20">
+        </div>
       </div>
       <div class="row2">
         <div class="field">
@@ -973,30 +995,66 @@ function renderUsers(list) {
   }).join('');
 }
 
-function editUser(id) {
-  const u = userCache.find((x) => x.id === id);
-  if (!u) return;
-  document.getElementById('userTitle').textContent = '编辑用户 @' + u.username;
-  document.getElementById('uId').value = u.id;
-  document.getElementById('uNick').value = u.nickname || '';
-  document.getElementById('uRoleSel').value = u.role;
-  document.getElementById('uStatusSel').value = u.status;
+// 新建与编辑共用一个弹窗：不传 id 即新建，此时才需要填用户名与初始密码。
+// 编辑时用户名只读——它是登录身份，改名会让对方无法用原账号登录。
+function openUserModal(id) {
+  const form = document.getElementById('userForm');
+  form.reset();
+  const editing = id != null;
+  const u = editing ? userCache.find((x) => x.id === id) : null;
+
+  document.getElementById('userTitle').textContent = editing ? `编辑用户 @${u ? u.username : ''}` : '新建用户';
+  document.getElementById('userHint').textContent = editing
+    ? '角色与状态存在数据库里，改完立即生效，无需等对方重新登录。密码请用「重置密码」单独处理。'
+    : '管理员直接建号：填好初始密码后把账号密码告知用户，登录后可自行修改。';
+
+  const nameEl = document.getElementById('uUsername');
+  nameEl.value = editing ? u.username : '';
+  nameEl.disabled = editing;
+  nameEl.required = !editing;
+  document.getElementById('uPassword').required = !editing;
+  // 编辑模式不需要密码框，直接不占位，让用户名独占整行
+  document.getElementById('uPwdWrap').style.display = editing ? 'none' : '';
+  document.getElementById('uNameRow').style.gridTemplateColumns = editing ? '1fr' : '';
+
+  document.getElementById('uId').value = editing ? u.id : '';
+  document.getElementById('uNick').value = editing ? u.nickname || '' : '';
+  document.getElementById('uEmail').value = editing ? u.email || '' : '';
+  document.getElementById('uPhone').value = editing ? u.phone || '' : '';
+  document.getElementById('uRoleSel').value = editing ? u.role : 0;
+  document.getElementById('uStatusSel').value = editing ? u.status : 1;
+
   document.getElementById('userModal').classList.add('show');
+}
+
+// 兼容原来的调用点与 onclick 里的 editUser
+function editUser(id) {
+  openUserModal(id);
 }
 
 async function submitUser(e) {
   e.preventDefault();
+  const id = document.getElementById('uId').value;
+  const creating = !id;
   const payload = {
-    id: document.getElementById('uId').value,
     nickname: document.getElementById('uNick').value.trim(),
+    email: document.getElementById('uEmail').value.trim(),
+    phone: document.getElementById('uPhone').value.trim(),
     role: document.getElementById('uRoleSel').value,
     status: document.getElementById('uStatusSel').value,
   };
+  if (creating) {
+    payload.username = document.getElementById('uUsername').value.trim();
+    payload.password = document.getElementById('uPassword').value;
+  } else {
+    payload.id = id;
+  }
+
   const btn = document.getElementById('userSubmit');
   btn.disabled = true;
   try {
-    await post('/admin/user/save', payload);
-    toast('已保存');
+    const d = await post(creating ? '/admin/user/create' : '/admin/user/save', payload);
+    toast(creating ? `已创建，ID ${d.id}` : '已保存');
     document.getElementById('userModal').classList.remove('show');
     loadUsers();
     loadStats();
@@ -1007,7 +1065,8 @@ async function submitUser(e) {
   }
 }
 
-// 快速启用/禁用：沿用当前的昵称与角色，只翻转状态
+// 快速启用/禁用：沿用当前的昵称、邮箱、手机号与角色，只翻转状态。
+// 这些字段必须原样回传——save 接口是整体覆盖，漏传等于把它们清空。
 async function toggleUser(id) {
   const u = userCache.find((x) => x.id === id);
   if (!u) return;
@@ -1018,7 +1077,12 @@ async function toggleUser(id) {
   if (!confirm(tip)) return;
   try {
     await post('/admin/user/save', {
-      id, nickname: u.nickname || '', role: u.role, status: next,
+      id,
+      nickname: u.nickname || '',
+      email: u.email || '',
+      phone: u.phone || '',
+      role: u.role,
+      status: next,
     });
     toast(next === 1 ? '已启用' : '已禁用');
     loadUsers();
@@ -1143,6 +1207,7 @@ async function boot() {
   };
   document.getElementById('uRole').onchange = () => document.getElementById('uSearch').click();
   document.getElementById('uStatus').onchange = () => document.getElementById('uSearch').click();
+  document.getElementById('uCreate').onclick = () => openUserModal();
   document.getElementById('userCancel').onclick = () => {
     document.getElementById('userModal').classList.remove('show');
   };

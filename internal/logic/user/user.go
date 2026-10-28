@@ -232,6 +232,11 @@ func (s *sUser) AdminSave(ctx context.Context, in model.UserSaveInput, operatorI
 		}
 	}
 
+	email, phone := strings.TrimSpace(in.Email), strings.TrimSpace(in.Phone)
+	if err := checkContactUnique(ctx, email, phone, target.Id); err != nil {
+		return 0, err
+	}
+
 	nickname := strings.TrimSpace(in.Nickname)
 	if nickname == "" {
 		nickname = target.Username
@@ -239,12 +244,108 @@ func (s *sUser) AdminSave(ctx context.Context, in model.UserSaveInput, operatorI
 
 	if _, err := dao.User.Ctx(ctx).WherePri(in.ID).Data(g.Map{
 		cols.Nickname: nickname,
+		cols.Email:    nullableContact(email),
+		cols.Phone:    nullableContact(phone),
 		cols.Role:     in.Role,
 		cols.Status:   in.Status,
 	}).Update(); err != nil {
 		return 0, err
 	}
 	return in.ID, nil
+}
+
+// AdminCreate 后台直接新建用户。复用注册那套校验，额外放开角色与状态，
+// 让管理员可以一次性建出「已启用的管理员」或「先建好但禁用」的账号。
+func (s *sUser) AdminCreate(ctx context.Context, in model.UserCreateInput) (uint64, error) {
+	cols := dao.User.Columns()
+	username := strings.TrimSpace(in.Username)
+
+	count, err := dao.User.Ctx(ctx).Where(cols.Username, username).Count()
+	if err != nil {
+		return 0, err
+	}
+	if count > 0 {
+		return 0, gerror.NewCode(gcode.CodeValidationFailed, "用户名已被占用")
+	}
+
+	email, phone := strings.TrimSpace(in.Email), strings.TrimSpace(in.Phone)
+	if err = checkContactUnique(ctx, email, phone, 0); err != nil {
+		return 0, err
+	}
+
+	hashed, err := bcrypt.GenerateFromPassword([]byte(in.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return 0, err
+	}
+
+	nickname := strings.TrimSpace(in.Nickname)
+	if nickname == "" {
+		nickname = username
+	}
+
+	result, err := dao.User.Ctx(ctx).Data(g.Map{
+		cols.Username: username,
+		cols.Password: string(hashed),
+		cols.Nickname: nickname,
+		cols.Email:    nullableContact(email),
+		cols.Phone:    nullableContact(phone),
+		cols.Role:     in.Role,
+		cols.Status:   in.Status,
+	}).Insert()
+	if err != nil {
+		return 0, err
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+	return uint64(id), nil
+}
+
+// nullableContact 邮箱/手机号留空时返回 nil，落库即 NULL。
+// 这两列是 UNIQUE 且允许 NULL：多个 NULL 互不冲突，而空字符串只能存在一个，
+// 第二个不填邮箱的用户就会撞唯一键。
+func nullableContact(v string) any {
+	if v == "" {
+		return nil
+	}
+	return v
+}
+
+// checkContactUnique 校验邮箱/手机号未被其他账号占用。
+// excludeID 用于编辑场景排除自己，否则原样保存会被判成重复。
+func checkContactUnique(ctx context.Context, email, phone string, excludeID uint64) error {
+	cols := dao.User.Columns()
+
+	if email != "" {
+		m := dao.User.Ctx(ctx).Where(cols.Email, email)
+		if excludeID > 0 {
+			m = m.WhereNot(cols.Id, excludeID)
+		}
+		n, err := m.Count()
+		if err != nil {
+			return err
+		}
+		if n > 0 {
+			return gerror.NewCode(gcode.CodeValidationFailed, "该邮箱已被其他账号使用")
+		}
+	}
+
+	if phone != "" {
+		m := dao.User.Ctx(ctx).Where(cols.Phone, phone)
+		if excludeID > 0 {
+			m = m.WhereNot(cols.Id, excludeID)
+		}
+		n, err := m.Count()
+		if err != nil {
+			return err
+		}
+		if n > 0 {
+			return gerror.NewCode(gcode.CodeValidationFailed, "该手机号已被其他账号使用")
+		}
+	}
+	return nil
 }
 
 // AdminResetPassword 管理员重置密码，不需要知道原密码。
