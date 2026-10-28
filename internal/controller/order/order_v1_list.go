@@ -4,12 +4,13 @@ import (
 	"context"
 
 	v1 "hello/api/order/v1"
+	"hello/internal/model"
 	"hello/internal/service"
 )
 
 // List 处理 GET /order/list
 func (c *ControllerV1) List(ctx context.Context, req *v1.ListReq) (res *v1.ListRes, err error) {
-	list, total, err := service.Order().List(ctx, service.OrderListInput{
+	list, total, err := service.Order().List(ctx, model.OrderListInput{
 		UserID:   currentUserID(ctx),
 		Page:     req.Page,
 		PageSize: req.PageSize,

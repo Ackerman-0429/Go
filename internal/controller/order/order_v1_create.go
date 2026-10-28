@@ -4,12 +4,13 @@ import (
 	"context"
 
 	v1 "hello/api/order/v1"
+	"hello/internal/model"
 	"hello/internal/service"
 )
 
 // Create 处理 POST /order/create
 func (c *ControllerV1) Create(ctx context.Context, req *v1.CreateReq) (res *v1.CreateRes, err error) {
-	out, err := service.Order().Create(ctx, service.OrderCreateInput{
+	out, err := service.Order().Create(ctx, model.OrderCreateInput{
 		UserID:          currentUserID(ctx),
 		ReceiverName:    req.ReceiverName,
 		ReceiverPhone:   req.ReceiverPhone,

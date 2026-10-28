@@ -1,4 +1,4 @@
-// Package middleware 提供 HTTP 中间件，目前包含登录态校验。
+// Package middleware 提供 HTTP 层中间件：登录态校验等，与业务逻辑解耦。
 package middleware
 
 import (

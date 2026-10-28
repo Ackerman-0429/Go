@@ -8,14 +8,13 @@ import (
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
 
+	"hello/internal/consts"
 	"hello/internal/dao"
+	"hello/internal/model"
 	"hello/internal/model/entity"
 	"hello/internal/service"
 	"hello/utility/money"
 )
-
-// goodsStatusOnSale 上架状态，与商品模块保持一致
-const goodsStatusOnSale = 1
 
 type sCart struct{}
 
@@ -37,7 +36,7 @@ type cartJoinRow struct {
 }
 
 // Add 加入购物车。同一商品已存在时累加数量，累加后不得超过库存。
-func (s *sCart) Add(ctx context.Context, in service.CartAddInput) (uint64, uint, error) {
+func (s *sCart) Add(ctx context.Context, in model.CartAddInput) (uint64, uint, error) {
 	// 商品必须存在且在售
 	goods, err := service.Goods().GetById(ctx, in.GoodsID)
 	if err != nil {
@@ -97,7 +96,7 @@ func (s *sCart) Add(ctx context.Context, in service.CartAddInput) (uint64, uint,
 }
 
 // List 查询购物车。左联商品表一次取全，避免逐条查询产生 N+1。
-func (s *sCart) List(ctx context.Context, userID uint64) (*service.CartListOutput, error) {
+func (s *sCart) List(ctx context.Context, userID uint64) (*model.CartListOutput, error) {
 	var rows []cartJoinRow
 	err := dao.Cart.Ctx(ctx).As("c").
 		LeftJoin("goods g", "g.id = c.goods_id").
@@ -110,10 +109,10 @@ func (s *sCart) List(ctx context.Context, userID uint64) (*service.CartListOutpu
 		return nil, err
 	}
 
-	out := &service.CartListOutput{List: make([]service.CartItem, 0, len(rows))}
+	out := &model.CartListOutput{List: make([]model.CartItem, 0, len(rows))}
 	var totalCents int64
 	for _, row := range rows {
-		item := service.CartItem{
+		item := model.CartItem{
 			ID:        row.CartId,
 			GoodsID:   row.GoodsId,
 			Name:      row.Name,
@@ -127,7 +126,7 @@ func (s *sCart) List(ctx context.Context, userID uint64) (*service.CartListOutpu
 
 		// 下架、售罄、数量超库存都不能结算，但保留在列表里让用户自己处理
 		switch {
-		case row.GoodsStatus != goodsStatusOnSale:
+		case row.GoodsStatus != consts.GoodsStatusOnSale:
 			item.Available = false
 			item.Reason = "商品已下架"
 		case row.Stock == 0:

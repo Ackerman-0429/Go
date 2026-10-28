@@ -1,26 +1,30 @@
-// Package service 定义业务接口与注册机制，具体实现位于 internal/logic。
+// ================================================================================
+// Code generated and maintained by GoFrame CLI tool. DO NOT EDIT.
+// You can delete these comments if you wish manually maintain this interface file.
+// ================================================================================
+
 package service
 
 import (
 	"context"
-
 	"hello/internal/model/entity"
 )
 
-// IUser 用户业务接口。
-// 定义在 service 层、实现在 logic 层，controller 只依赖这个接口。
-type IUser interface {
-	// Register 注册，返回新用户ID
-	Register(ctx context.Context, username, password, nickname string) (id uint64, err error)
-	// Login 登录，校验通过返回用户实体
-	Login(ctx context.Context, username, password string) (user *entity.User, err error)
-	// GetById 按ID查询用户
-	GetById(ctx context.Context, id uint64) (user *entity.User, err error)
-}
+type (
+	IUser interface {
+		// Register 注册新用户。密码用 bcrypt 哈希后入库，绝不存明文。
+		Register(ctx context.Context, username string, password string, nickname string) (uint64, error)
+		// Login 登录校验。用户名不存在和密码错误统一提示，避免暴露账号是否存在。
+		Login(ctx context.Context, username string, password string) (*entity.User, error)
+		// GetById 按主键查询用户
+		GetById(ctx context.Context, id uint64) (*entity.User, error)
+	}
+)
 
-var localUser IUser
+var (
+	localUser IUser
+)
 
-// User 获取用户业务实例
 func User() IUser {
 	if localUser == nil {
 		panic("implement not found for interface IUser, forgot register?")
@@ -28,7 +32,6 @@ func User() IUser {
 	return localUser
 }
 
-// RegisterUser 由 logic 层在 init 中调用，完成实现注册
 func RegisterUser(i IUser) {
 	localUser = i
 }

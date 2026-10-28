@@ -7,13 +7,12 @@ import (
 	"github.com/gogf/gf/v2/errors/gcode"
 	"github.com/gogf/gf/v2/errors/gerror"
 
+	"hello/internal/consts"
 	"hello/internal/dao"
+	"hello/internal/model"
 	"hello/internal/model/entity"
 	"hello/internal/service"
 )
-
-// goodsStatusOnSale 上架状态
-const goodsStatusOnSale = 1
 
 type sGoods struct{}
 
@@ -22,8 +21,8 @@ func init() {
 }
 
 // List 分页查询上架商品。用户端只能看到 status=1 的商品。
-func (s *sGoods) List(ctx context.Context, in service.GoodsListInput) ([]entity.Goods, int, error) {
-	m := dao.Goods.Ctx(ctx).Where(dao.Goods.Columns().Status, goodsStatusOnSale)
+func (s *sGoods) List(ctx context.Context, in model.GoodsListInput) ([]entity.Goods, int, error) {
+	m := dao.Goods.Ctx(ctx).Where(dao.Goods.Columns().Status, consts.GoodsStatusOnSale)
 
 	if in.CategoryID > 0 {
 		m = m.Where(dao.Goods.Columns().CategoryId, in.CategoryID)
@@ -50,7 +49,7 @@ func (s *sGoods) GetById(ctx context.Context, id uint64) (*entity.Goods, error) 
 	var goods *entity.Goods
 	if err := dao.Goods.Ctx(ctx).
 		Where(dao.Goods.Columns().Id, id).
-		Where(dao.Goods.Columns().Status, goodsStatusOnSale).
+		Where(dao.Goods.Columns().Status, consts.GoodsStatusOnSale).
 		Scan(&goods); err != nil {
 		return nil, err
 	}

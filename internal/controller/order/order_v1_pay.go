@@ -4,6 +4,7 @@ import (
 	"context"
 
 	v1 "hello/api/order/v1"
+	"hello/internal/consts"
 	"hello/internal/service"
 )
 
@@ -14,8 +15,8 @@ func (c *ControllerV1) Pay(ctx context.Context, req *v1.PayReq) (res *v1.PayRes,
 		return nil, err
 	}
 	return &v1.PayRes{
-		Status:     service.OrderStatusPaid,
-		StatusText: statusText(service.OrderStatusPaid),
+		Status:     consts.OrderStatusPaid,
+		StatusText: statusText(consts.OrderStatusPaid),
 		PaidAt:     formatTime(paidAt),
 	}, nil
 }

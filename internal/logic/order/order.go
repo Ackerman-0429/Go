@@ -12,14 +12,13 @@ import (
 	"github.com/gogf/gf/v2/os/gtime"
 	"github.com/gogf/gf/v2/util/grand"
 
+	"hello/internal/consts"
 	"hello/internal/dao"
+	"hello/internal/model"
 	"hello/internal/model/entity"
 	"hello/internal/service"
 	"hello/utility/money"
 )
-
-// goodsStatusOnSale 上架状态，与商品模块保持一致
-const goodsStatusOnSale = 1
 
 type sOrder struct{}
 
@@ -34,8 +33,8 @@ func genOrderNo() string {
 
 // Create 把购物车中可结算的商品生成订单。
 // 扣库存、写订单、写明细、清购物车在同一个事务里，任何一步失败整体回滚。
-func (s *sOrder) Create(ctx context.Context, in service.OrderCreateInput) (*service.OrderCreateOutput, error) {
-	var out *service.OrderCreateOutput
+func (s *sOrder) Create(ctx context.Context, in model.OrderCreateInput) (*model.OrderCreateOutput, error) {
+	var out *model.OrderCreateOutput
 
 	err := g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
 		orderCols := dao.Orders.Columns()
@@ -67,7 +66,7 @@ func (s *sOrder) Create(ctx context.Context, in service.OrderCreateInput) (*serv
 			// 条件更新：只有库存足够时才扣减，并发下不会超卖
 			res, err := dao.Goods.Ctx(ctx).
 				Where(goodsCols.Id, item.GoodsID).
-				Where(goodsCols.Status, goodsStatusOnSale).
+				Where(goodsCols.Status, consts.GoodsStatusOnSale).
 				Where("stock >= ?", item.Quantity).
 				Decrement(goodsCols.Stock, item.Quantity)
 			if err != nil {
@@ -107,7 +106,7 @@ func (s *sOrder) Create(ctx context.Context, in service.OrderCreateInput) (*serv
 			orderCols.OrderNo:         orderNo,
 			orderCols.UserId:          in.UserID,
 			orderCols.TotalAmount:     money.FromCents(totalCents),
-			orderCols.Status:          service.OrderStatusPending,
+			orderCols.Status:          consts.OrderStatusPending,
 			orderCols.ReceiverName:    in.ReceiverName,
 			orderCols.ReceiverPhone:   in.ReceiverPhone,
 			orderCols.ReceiverAddress: in.ReceiverAddress,
@@ -141,7 +140,7 @@ func (s *sOrder) Create(ctx context.Context, in service.OrderCreateInput) (*serv
 			return gerror.New("购物车已发生变化，请刷新后重试")
 		}
 
-		out = &service.OrderCreateOutput{
+		out = &model.OrderCreateOutput{
 			OrderID:     uint64(orderID),
 			OrderNo:     orderNo,
 			TotalAmount: money.FromCents(totalCents),
@@ -156,7 +155,7 @@ func (s *sOrder) Create(ctx context.Context, in service.OrderCreateInput) (*serv
 }
 
 // List 分页查询当前用户的订单，商品信息由明细聚合
-func (s *sOrder) List(ctx context.Context, in service.OrderListInput) ([]service.OrderListItem, int, error) {
+func (s *sOrder) List(ctx context.Context, in model.OrderListInput) ([]model.OrderListItem, int, error) {
 	orderCols := dao.Orders.Columns()
 	itemCols := dao.OrderItem.Columns()
 
@@ -175,7 +174,7 @@ func (s *sOrder) List(ctx context.Context, in service.OrderListInput) ([]service
 		return nil, 0, err
 	}
 	if len(orders) == 0 {
-		return []service.OrderListItem{}, total, nil
+		return []model.OrderListItem{}, total, nil
 	}
 
 	ids := make([]uint64, 0, len(orders))
@@ -191,9 +190,9 @@ func (s *sOrder) List(ctx context.Context, in service.OrderListInput) ([]service
 		return nil, 0, err
 	}
 
-	agg := make(map[uint64]*service.OrderListItem, len(orders))
+	agg := make(map[uint64]*model.OrderListItem, len(orders))
 	for _, o := range orders {
-		agg[o.Id] = &service.OrderListItem{
+		agg[o.Id] = &model.OrderListItem{
 			ID:          o.Id,
 			OrderNo:     o.OrderNo,
 			TotalAmount: o.TotalAmount,
@@ -214,7 +213,7 @@ func (s *sOrder) List(ctx context.Context, in service.OrderListInput) ([]service
 		a.Quantity += it.Quantity
 	}
 
-	out := make([]service.OrderListItem, 0, len(orders))
+	out := make([]model.OrderListItem, 0, len(orders))
 	for _, o := range orders {
 		out = append(out, *agg[o.Id])
 	}
@@ -222,7 +221,7 @@ func (s *sOrder) List(ctx context.Context, in service.OrderListInput) ([]service
 }
 
 // Detail 查询订单详情，订单与明细都限定在当前用户范围内
-func (s *sOrder) Detail(ctx context.Context, userID, orderID uint64) (*service.OrderDetail, error) {
+func (s *sOrder) Detail(ctx context.Context, userID, orderID uint64) (*model.OrderDetail, error) {
 	orderCols := dao.Orders.Columns()
 	itemCols := dao.OrderItem.Columns()
 
@@ -244,7 +243,7 @@ func (s *sOrder) Detail(ctx context.Context, userID, orderID uint64) (*service.O
 		Scan(&items); err != nil {
 		return nil, err
 	}
-	return &service.OrderDetail{Order: order, Items: items}, nil
+	return &model.OrderDetail{Order: order, Items: items}, nil
 }
 
 // Cancel 取消待付款订单并回滚库存
@@ -258,8 +257,8 @@ func (s *sOrder) Cancel(ctx context.Context, userID, orderID uint64) error {
 		res, err := dao.Orders.Ctx(ctx).
 			Where(orderCols.Id, orderID).
 			Where(orderCols.UserId, userID).
-			Where(orderCols.Status, service.OrderStatusPending).
-			Data(g.Map{orderCols.Status: service.OrderStatusCancelled}).
+			Where(orderCols.Status, consts.OrderStatusPending).
+			Data(g.Map{orderCols.Status: consts.OrderStatusCancelled}).
 			Update()
 		if err != nil {
 			return err
@@ -300,9 +299,9 @@ func (s *sOrder) Pay(ctx context.Context, userID, orderID uint64) (*gtime.Time, 
 		res, err := dao.Orders.Ctx(ctx).
 			Where(orderCols.Id, orderID).
 			Where(orderCols.UserId, userID).
-			Where(orderCols.Status, service.OrderStatusPending).
+			Where(orderCols.Status, consts.OrderStatusPending).
 			Data(g.Map{
-				orderCols.Status: service.OrderStatusPaid,
+				orderCols.Status: consts.OrderStatusPaid,
 				orderCols.PaidAt: paidAt,
 			}).
 			Update()

@@ -13,14 +13,7 @@ import (
 	"hello/internal/controller/hello"
 	"hello/internal/controller/order"
 	"hello/internal/controller/user"
-	"hello/internal/logic/middleware"
-
-	// 导入 logic 层，触发其 init() 完成 service 实现的注册
-	_ "hello/internal/logic/cart"
-	_ "hello/internal/logic/category"
-	_ "hello/internal/logic/goods"
-	_ "hello/internal/logic/order"
-	_ "hello/internal/logic/user"
+	"hello/internal/middleware"
 )
 
 var (

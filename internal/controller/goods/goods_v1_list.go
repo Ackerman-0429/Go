@@ -4,12 +4,13 @@ import (
 	"context"
 
 	v1 "hello/api/goods/v1"
+	"hello/internal/model"
 	"hello/internal/service"
 )
 
 // List 处理 GET /goods/list
 func (c *ControllerV1) List(ctx context.Context, req *v1.ListReq) (res *v1.ListRes, err error) {
-	list, total, err := service.Goods().List(ctx, service.GoodsListInput{
+	list, total, err := service.Goods().List(ctx, model.GoodsListInput{
 		Page:       req.Page,
 		PageSize:   req.PageSize,
 		CategoryID: req.CategoryID,

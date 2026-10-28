@@ -1,30 +1,29 @@
+// ================================================================================
+// Code generated and maintained by GoFrame CLI tool. DO NOT EDIT.
+// You can delete these comments if you wish manually maintain this interface file.
+// ================================================================================
+
 package service
 
 import (
 	"context"
-
+	"hello/internal/model"
 	"hello/internal/model/entity"
 )
 
-// GoodsListInput 商品列表查询条件
-type GoodsListInput struct {
-	Page       int
-	PageSize   int
-	CategoryID uint64
-	Keyword    string
-}
+type (
+	IGoods interface {
+		// List 分页查询上架商品。用户端只能看到 status=1 的商品。
+		List(ctx context.Context, in model.GoodsListInput) ([]entity.Goods, int, error)
+		// GetById 查询上架商品详情
+		GetById(ctx context.Context, id uint64) (*entity.Goods, error)
+	}
+)
 
-// IGoods 商品业务接口
-type IGoods interface {
-	// List 分页查询上架商品
-	List(ctx context.Context, in GoodsListInput) (list []entity.Goods, total int, err error)
-	// GetById 查询上架商品详情
-	GetById(ctx context.Context, id uint64) (goods *entity.Goods, err error)
-}
+var (
+	localGoods IGoods
+)
 
-var localGoods IGoods
-
-// Goods 获取商品业务实例
 func Goods() IGoods {
 	if localGoods == nil {
 		panic("implement not found for interface IGoods, forgot register?")
@@ -32,7 +31,6 @@ func Goods() IGoods {
 	return localGoods
 }
 
-// RegisterGoods 由 logic 层在 init 中调用
 func RegisterGoods(i IGoods) {
 	localGoods = i
 }

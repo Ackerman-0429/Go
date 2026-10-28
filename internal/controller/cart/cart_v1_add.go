@@ -4,12 +4,13 @@ import (
 	"context"
 
 	v1 "hello/api/cart/v1"
+	"hello/internal/model"
 	"hello/internal/service"
 )
 
 // Add 处理 POST /cart/add
 func (c *ControllerV1) Add(ctx context.Context, req *v1.AddReq) (res *v1.AddRes, err error) {
-	id, quantity, err := service.Cart().Add(ctx, service.CartAddInput{
+	id, quantity, err := service.Cart().Add(ctx, model.CartAddInput{
 		UserID:   currentUserID(ctx),
 		GoodsID:  req.GoodsID,
 		Quantity: req.Quantity,

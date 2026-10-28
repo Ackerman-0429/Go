@@ -1,20 +1,26 @@
+// ================================================================================
+// Code generated and maintained by GoFrame CLI tool. DO NOT EDIT.
+// You can delete these comments if you wish manually maintain this interface file.
+// ================================================================================
+
 package service
 
 import (
 	"context"
-
 	"hello/internal/model/entity"
 )
 
-// ICategory 分类业务接口
-type ICategory interface {
-	// List 查询全部启用分类
-	List(ctx context.Context) (list []entity.Category, err error)
-}
+type (
+	ICategory interface {
+		// List 查询全部启用分类，按「顶级 -> 其子级」的树形顺序返回。
+		List(ctx context.Context) ([]entity.Category, error)
+	}
+)
 
-var localCategory ICategory
+var (
+	localCategory ICategory
+)
 
-// Category 获取分类业务实例
 func Category() ICategory {
 	if localCategory == nil {
 		panic("implement not found for interface ICategory, forgot register?")
@@ -22,7 +28,6 @@ func Category() ICategory {
 	return localCategory
 }
 
-// RegisterCategory 由 logic 层在 init 中调用
 func RegisterCategory(i ICategory) {
 	localCategory = i
 }
