@@ -45,3 +45,11 @@ type InfoRes struct {
 	Email    string `json:"email"    dc:"邮箱"`
 	Phone    string `json:"phone"    dc:"手机号"`
 }
+
+// LogoutReq 退出登录
+type LogoutReq struct {
+	g.Meta `path:"/user/logout" method:"post" summary:"退出登录" tags:"用户"`
+}
+
+// LogoutRes 退出结果
+type LogoutRes struct{}
