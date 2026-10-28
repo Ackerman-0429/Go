@@ -11,6 +11,7 @@ import (
 	"hello/internal/controller/category"
 	"hello/internal/controller/goods"
 	"hello/internal/controller/hello"
+	"hello/internal/controller/order"
 	"hello/internal/controller/user"
 	"hello/internal/logic/middleware"
 
@@ -18,6 +19,7 @@ import (
 	_ "hello/internal/logic/cart"
 	_ "hello/internal/logic/category"
 	_ "hello/internal/logic/goods"
+	_ "hello/internal/logic/order"
 	_ "hello/internal/logic/user"
 )
 
@@ -43,6 +45,7 @@ var (
 				group.Middleware(ghttp.MiddlewareHandlerResponse, middleware.Auth)
 				group.Bind(
 					cart.NewV1(),
+					order.NewV1(),
 				)
 			})
 			s.Run()

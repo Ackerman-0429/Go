@@ -3,7 +3,6 @@ package cart
 
 import (
 	"context"
-	"math"
 
 	"github.com/gogf/gf/v2/errors/gcode"
 	"github.com/gogf/gf/v2/errors/gerror"
@@ -12,6 +11,7 @@ import (
 	"hello/internal/dao"
 	"hello/internal/model/entity"
 	"hello/internal/service"
+	"hello/utility/money"
 )
 
 // goodsStatusOnSale 上架状态，与商品模块保持一致
@@ -34,16 +34,6 @@ type cartJoinRow struct {
 	Price       float64 `orm:"price"`
 	Stock       uint    `orm:"stock"`
 	GoodsStatus uint    `orm:"goods_status"`
-}
-
-// toCents 把元换算成分。金额一律用整数分累加，避免 float64 出现 0.1+0.2 这类误差。
-func toCents(yuan float64) int64 {
-	return int64(math.Round(yuan * 100))
-}
-
-// fromCents 把分换算回元
-func fromCents(cents int64) float64 {
-	return float64(cents) / 100
 }
 
 // Add 加入购物车。同一商品已存在时累加数量，累加后不得超过库存。
@@ -149,8 +139,8 @@ func (s *sCart) List(ctx context.Context, userID uint64) (*service.CartListOutpu
 		}
 
 		// 单价先转成分再乘数量，全程整数运算
-		cents := toCents(row.Price) * int64(row.Quantity)
-		item.Subtotal = fromCents(cents)
+		cents := money.ToCents(row.Price) * int64(row.Quantity)
+		item.Subtotal = money.FromCents(cents)
 		if item.Available {
 			totalCents += cents
 			out.TotalQuantity += row.Quantity
@@ -160,7 +150,7 @@ func (s *sCart) List(ctx context.Context, userID uint64) (*service.CartListOutpu
 		out.List = append(out.List, item)
 	}
 
-	out.TotalAmount = fromCents(totalCents)
+	out.TotalAmount = money.FromCents(totalCents)
 	return out, nil
 }
 
