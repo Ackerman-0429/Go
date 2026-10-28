@@ -22,4 +22,7 @@ type IAdminV1 interface {
 	CategoryList(ctx context.Context, req *v1.CategoryListReq) (res *v1.CategoryListRes, err error)
 	CategorySave(ctx context.Context, req *v1.CategorySaveReq) (res *v1.CategorySaveRes, err error)
 	CategoryDelete(ctx context.Context, req *v1.CategoryDeleteReq) (res *v1.CategoryDeleteRes, err error)
+	UserList(ctx context.Context, req *v1.UserListReq) (res *v1.UserListRes, err error)
+	UserSave(ctx context.Context, req *v1.UserSaveReq) (res *v1.UserSaveRes, err error)
+	UserResetPassword(ctx context.Context, req *v1.UserResetPasswordReq) (res *v1.UserResetPasswordRes, err error)
 }

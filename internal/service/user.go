@@ -7,6 +7,7 @@ package service
 
 import (
 	"context"
+	"goshop/internal/model"
 	"goshop/internal/model/entity"
 )
 
@@ -18,6 +19,14 @@ type (
 		Login(ctx context.Context, username string, password string) (*entity.User, error)
 		// GetById 按主键查询用户
 		GetById(ctx context.Context, id uint64) (*entity.User, error)
+		// AdminList 后台用户列表。支持关键字（用户名/昵称/邮箱/手机号）、角色、状态筛选，
+		// 并附带订单数与累计消费，方便判断这个账号值不值得留着。
+		AdminList(ctx context.Context, in model.UserAdminListInput) ([]model.UserAdminItem, int, error)
+		// AdminSave 编辑用户：昵称、角色、状态。
+		// operatorID 是当前登录的管理员，用来拦住「把自己锁在门外」的操作。
+		AdminSave(ctx context.Context, in model.UserSaveInput, operatorID uint64) (uint64, error)
+		// AdminResetPassword 管理员重置密码，不需要知道原密码。
+		AdminResetPassword(ctx context.Context, id uint64, password string) error
 	}
 )
 

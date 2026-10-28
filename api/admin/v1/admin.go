@@ -221,3 +221,66 @@ type CategoryDeleteReq struct {
 
 // CategoryDeleteRes 删除结果
 type CategoryDeleteRes struct{}
+
+// ---------------------------------------------------------------------------
+// 用户管理
+// ---------------------------------------------------------------------------
+
+// UserListReq 后台用户列表
+type UserListReq struct {
+	g.Meta   `path:"/user/list" method:"get" summary:"用户列表" tags:"后台-用户"`
+	Page     int    `json:"page"     d:"1"  v:"min:1#页码最小为1"                  dc:"页码"`
+	PageSize int    `json:"pageSize" d:"10" v:"between:1,100#每页数量需在1-100之间" dc:"每页数量"`
+	Keyword  string `json:"keyword"                                            dc:"按用户名/昵称/邮箱/手机号搜索"`
+	Role     int    `json:"role"     d:"-1" v:"in:-1,0,1#角色不合法"              dc:"按角色筛选，-1 全部"`
+	Status   int    `json:"status"   d:"-1" v:"in:-1,0,1#状态不合法"              dc:"按状态筛选，-1 全部"`
+}
+
+// UserItem 后台用户条目
+type UserItem struct {
+	ID         uint64  `json:"id"         dc:"用户ID"`
+	Username   string  `json:"username"   dc:"用户名"`
+	Nickname   string  `json:"nickname"   dc:"昵称"`
+	Email      string  `json:"email"      dc:"邮箱"`
+	Phone      string  `json:"phone"      dc:"手机号"`
+	Role       uint    `json:"role"       dc:"角色：0普通用户 1管理员"`
+	Status     uint    `json:"status"     dc:"状态：1正常 0禁用"`
+	OrderCount int     `json:"orderCount" dc:"订单总数"`
+	TotalSpent float64 `json:"totalSpent" dc:"累计消费（已付款及之后，不含待付款与已取消）"`
+	CreatedAt  string  `json:"createdAt"  dc:"注册时间"`
+}
+
+// UserListRes 分页结果
+type UserListRes struct {
+	List     []UserItem `json:"list"     dc:"用户列表"`
+	Total    int        `json:"total"    dc:"总条数"`
+	Page     int        `json:"page"     dc:"当前页"`
+	PageSize int        `json:"pageSize" dc:"每页数量"`
+}
+
+// UserSaveReq 编辑用户资料 / 角色 / 状态。
+// 不能降级或禁用当前登录账号，也不能让系统失去最后一名可用管理员。
+type UserSaveReq struct {
+	g.Meta   `path:"/user/save" method:"post" summary:"编辑用户" tags:"后台-用户"`
+	ID       uint64 `json:"id"       v:"required|min:1#请提供用户ID|用户ID不合法"          dc:"用户ID"`
+	Nickname string `json:"nickname" v:"max-length:20#昵称不能超过20个字符"             dc:"昵称，留空则沿用用户名"`
+	Role     uint   `json:"role"     d:"0" v:"in:0,1#角色只能是0或1"                  dc:"角色：0普通用户 1管理员"`
+	Status   uint   `json:"status"   d:"1" v:"in:0,1#状态只能是0或1"                  dc:"状态：1正常 0禁用"`
+}
+
+// UserSaveRes 保存结果
+type UserSaveRes struct {
+	ID     uint64 `json:"id"     dc:"用户ID"`
+	Role   uint   `json:"role"   dc:"当前角色"`
+	Status uint   `json:"status" dc:"当前状态"`
+}
+
+// UserResetPasswordReq 重置用户密码。管理员无需知道原密码。
+type UserResetPasswordReq struct {
+	g.Meta   `path:"/user/reset-password" method:"post" summary:"重置密码" tags:"后台-用户"`
+	ID       uint64 `json:"id"       v:"required|min:1#请提供用户ID|用户ID不合法"           dc:"用户ID"`
+	Password string `json:"password" v:"required|length:6,32#请输入新密码|密码长度需在6-32之间" dc:"新密码"`
+}
+
+// UserResetPasswordRes 重置结果
+type UserResetPasswordRes struct{}

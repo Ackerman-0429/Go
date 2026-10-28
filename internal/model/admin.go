@@ -82,3 +82,34 @@ type CategorySaveInput struct {
 	Sort     int
 	Status   uint
 }
+
+// UserAdminListInput 后台用户列表查询条件。Role / Status 为 -1 表示全部。
+type UserAdminListInput struct {
+	Page     int
+	PageSize int
+	Keyword  string
+	Role     int
+	Status   int
+}
+
+// UserAdminItem 后台用户条目，附带订单统计
+type UserAdminItem struct {
+	ID         uint64
+	Username   string
+	Nickname   string
+	Email      string
+	Phone      string
+	Role       uint
+	Status     uint
+	OrderCount int
+	TotalSpent float64
+	CreatedAt  *gtime.Time
+}
+
+// UserSaveInput 后台编辑用户
+type UserSaveInput struct {
+	ID       uint64
+	Nickname string
+	Role     uint
+	Status   uint
+}

@@ -151,6 +151,7 @@
     <button data-tab="goods" class="on">商品管理</button>
     <button data-tab="category">分类管理</button>
     <button data-tab="orders">订单管理</button>
+    <button data-tab="users">用户管理</button>
   </nav>
   <div class="head-right">
     <span class="uname" id="who"></span>
@@ -252,6 +253,42 @@
     </div>
     <div class="pager" id="orderPager"></div>
   </section>
+
+  <!-- 用户管理 -->
+  <section class="panel hide" id="panel-users">
+    <div class="toolbar">
+      <input id="uKeyword" placeholder="用户名 / 昵称 / 邮箱 / 手机号" style="width:240px">
+      <select id="uRole" style="width:130px">
+        <option value="-1">全部角色</option>
+        <option value="1">管理员</option>
+        <option value="0">普通用户</option>
+      </select>
+      <select id="uStatus" style="width:130px">
+        <option value="-1">全部状态</option>
+        <option value="1">正常</option>
+        <option value="0">已禁用</option>
+      </select>
+      <button class="btn ghost sm" id="uSearch">查询</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:60px">ID</th>
+            <th>用户</th>
+            <th style="width:200px">联系方式</th>
+            <th style="width:110px">角色</th>
+            <th style="width:90px">状态</th>
+            <th style="width:80px">订单</th>
+            <th style="width:110px">消费</th>
+            <th style="width:230px">操作</th>
+          </tr>
+        </thead>
+        <tbody id="userBody"></tbody>
+      </table>
+    </div>
+    <div class="pager" id="userPager"></div>
+  </section>
 </main>
 
 <!-- 商品编辑弹窗 -->
@@ -348,6 +385,64 @@
   </div>
 </div>
 
+<!-- 用户编辑弹窗 -->
+<div class="modal" id="userModal">
+  <div class="dialog" style="max-width:520px">
+    <h3 id="userTitle">编辑用户</h3>
+    <p class="hint">角色与状态存在数据库里，改完立即生效，无需等对方重新登录。</p>
+    <form id="userForm">
+      <input type="hidden" name="id" id="uId">
+      <div class="field">
+        <label>昵称</label>
+        <input name="nickname" id="uNick" placeholder="留空则显示用户名" maxlength="20">
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>角色</label>
+          <select name="role" id="uRoleSel">
+            <option value="0">普通用户</option>
+            <option value="1">管理员</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>状态</label>
+          <select name="status" id="uStatusSel">
+            <option value="1">正常</option>
+            <option value="0">禁用</option>
+          </select>
+        </div>
+      </div>
+      <div class="dialog-foot">
+        <button type="button" class="btn ghost" id="userCancel">取消</button>
+        <button type="submit" class="btn" id="userSubmit">保存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 重置密码弹窗 -->
+<div class="modal" id="pwdModal">
+  <div class="dialog" style="max-width:480px">
+    <h3>重置密码</h3>
+    <p class="hint" id="pwdHint"></p>
+    <form id="pwdForm">
+      <input type="hidden" id="pwdId">
+      <div class="field">
+        <label>新密码</label>
+        <input type="password" id="pwdNew" placeholder="6-32 个字符" minlength="6" maxlength="32" required>
+      </div>
+      <div class="field">
+        <label>确认新密码</label>
+        <input type="password" id="pwdNew2" placeholder="再输入一次" minlength="6" maxlength="32" required>
+      </div>
+      <div class="dialog-foot">
+        <button type="button" class="btn ghost" id="pwdCancel">取消</button>
+        <button type="submit" class="btn" id="pwdSubmit">确认重置</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <div id="gate">
@@ -369,6 +464,7 @@ const state = {
   me: null,
   goods: { page: 1, pageSize: 10, keyword: '', categoryId: 0, status: -1, total: 0 },
   orders: { page: 1, pageSize: 10, keyword: '', status: -1, total: 0 },
+  users: { page: 1, pageSize: 10, keyword: '', role: -1, status: -1, total: 0 },
 };
 
 // 列表里已含完整字段，编辑弹窗直接从缓存回填，省一次详情请求
@@ -820,6 +916,150 @@ async function finishOrder(id) {
 }
 
 // ---------------------------------------------------------------------------
+// 用户
+// ---------------------------------------------------------------------------
+let userCache = [];
+
+async function loadUsers() {
+  const u = state.users;
+  const qs = new URLSearchParams({
+    page: u.page, pageSize: u.pageSize, keyword: u.keyword, role: u.role, status: u.status,
+  });
+  try {
+    const d = await api('/admin/user/list?' + qs.toString());
+    u.total = d.total;
+    userCache = d.list || [];
+    renderUsers(userCache);
+    renderPager('userPager', d.page, d.pageSize, d.total, (p) => {
+      state.users.page = p;
+      loadUsers();
+    });
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
+
+function renderUsers(list) {
+  const body = document.getElementById('userBody');
+  if (!list.length) {
+    body.innerHTML = '<tr><td colspan="8" class="empty">没有符合条件的用户</td></tr>';
+    return;
+  }
+  const me = state.me || {};
+  body.innerHTML = list.map((u) => {
+    const self = u.id === me.id;
+    const contact = [u.email, u.phone].filter(Boolean).join(' · ') || '—';
+    return `
+      <tr>
+        <td class="muted">${u.id}</td>
+        <td>
+          <div>${esc(u.nickname || u.username)}${self ? ' <span class="tag s1">当前账号</span>' : ''}</div>
+          <small style="color:#999;font-size:11px">@${esc(u.username)} · 注册于 ${esc(u.createdAt)}</small>
+        </td>
+        <td class="muted">${esc(contact)}</td>
+        <td><span class="tag ${u.role === 1 ? 's1' : 'off'}">${u.role === 1 ? '管理员' : '普通用户'}</span></td>
+        <td><span class="tag ${u.status === 1 ? 'on' : 'off'}">${u.status === 1 ? '正常' : '已禁用'}</span></td>
+        <td>${u.orderCount}</td>
+        <td class="price">${money(u.totalSpent)}</td>
+        <td>
+          <div class="ops">
+            <button class="btn ghost sm" onclick="editUser(${u.id})">编辑</button>
+            ${self ? '' : `
+            <button class="btn ghost sm" onclick="toggleUser(${u.id})">${u.status === 1 ? '禁用' : '启用'}</button>
+            <button class="btn ghost sm" onclick="openPwd(${u.id})">重置密码</button>`}
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+function editUser(id) {
+  const u = userCache.find((x) => x.id === id);
+  if (!u) return;
+  document.getElementById('userTitle').textContent = '编辑用户 @' + u.username;
+  document.getElementById('uId').value = u.id;
+  document.getElementById('uNick').value = u.nickname || '';
+  document.getElementById('uRoleSel').value = u.role;
+  document.getElementById('uStatusSel').value = u.status;
+  document.getElementById('userModal').classList.add('show');
+}
+
+async function submitUser(e) {
+  e.preventDefault();
+  const payload = {
+    id: document.getElementById('uId').value,
+    nickname: document.getElementById('uNick').value.trim(),
+    role: document.getElementById('uRoleSel').value,
+    status: document.getElementById('uStatusSel').value,
+  };
+  const btn = document.getElementById('userSubmit');
+  btn.disabled = true;
+  try {
+    await post('/admin/user/save', payload);
+    toast('已保存');
+    document.getElementById('userModal').classList.remove('show');
+    loadUsers();
+    loadStats();
+  } catch (err) {
+    toast(err.message, true);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// 快速启用/禁用：沿用当前的昵称与角色，只翻转状态
+async function toggleUser(id) {
+  const u = userCache.find((x) => x.id === id);
+  if (!u) return;
+  const next = u.status === 1 ? 0 : 1;
+  const tip = next === 0
+    ? `确认禁用「${u.username}」？该账号将立即无法登录，已登录的会话也会失效。`
+    : `确认启用「${u.username}」？`;
+  if (!confirm(tip)) return;
+  try {
+    await post('/admin/user/save', {
+      id, nickname: u.nickname || '', role: u.role, status: next,
+    });
+    toast(next === 1 ? '已启用' : '已禁用');
+    loadUsers();
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
+
+function openPwd(id) {
+  const u = userCache.find((x) => x.id === id);
+  if (!u) return;
+  const form = document.getElementById('pwdForm');
+  form.reset(); // reset 会清掉隐藏域，下面重新赋值
+  document.getElementById('pwdId').value = u.id;
+  document.getElementById('pwdHint').textContent = `为 @${u.username} 设置新密码，保存后原密码立即失效。`;
+  document.getElementById('pwdModal').classList.add('show');
+}
+
+async function submitPwd(e) {
+  e.preventDefault();
+  const id = document.getElementById('pwdId').value;
+  const p1 = document.getElementById('pwdNew').value;
+  const p2 = document.getElementById('pwdNew2').value;
+  if (p1 !== p2) {
+    toast('两次输入的密码不一致', true);
+    return;
+  }
+  const btn = document.getElementById('pwdSubmit');
+  btn.disabled = true;
+  try {
+    await post('/admin/user/reset-password', { id, password: p1 });
+    toast('密码已重置');
+    document.getElementById('pwdModal').classList.remove('show');
+  } catch (err) {
+    toast(err.message, true);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // 分页
 // ---------------------------------------------------------------------------
 function renderPager(id, page, pageSize, total, onJump) {
@@ -853,9 +1093,11 @@ function switchTab(tab) {
   document.getElementById('panel-goods').classList.toggle('hide', tab !== 'goods');
   document.getElementById('panel-category').classList.toggle('hide', tab !== 'category');
   document.getElementById('panel-orders').classList.toggle('hide', tab !== 'orders');
+  document.getElementById('panel-users').classList.toggle('hide', tab !== 'users');
   if (tab === 'goods') loadGoods();
   else if (tab === 'category') loadCategories();
-  else loadOrders();
+  else if (tab === 'orders') loadOrders();
+  else loadUsers();
 }
 
 async function boot() {
@@ -892,6 +1134,23 @@ async function boot() {
     document.getElementById('catModal').classList.remove('show');
   };
   document.getElementById('catForm').onsubmit = submitCategory;
+  document.getElementById('uSearch').onclick = () => {
+    state.users.keyword = document.getElementById('uKeyword').value.trim();
+    state.users.role = document.getElementById('uRole').value;
+    state.users.status = document.getElementById('uStatus').value;
+    state.users.page = 1;
+    loadUsers();
+  };
+  document.getElementById('uRole').onchange = () => document.getElementById('uSearch').click();
+  document.getElementById('uStatus').onchange = () => document.getElementById('uSearch').click();
+  document.getElementById('userCancel').onclick = () => {
+    document.getElementById('userModal').classList.remove('show');
+  };
+  document.getElementById('userForm').onsubmit = submitUser;
+  document.getElementById('pwdCancel').onclick = () => {
+    document.getElementById('pwdModal').classList.remove('show');
+  };
+  document.getElementById('pwdForm').onsubmit = submitPwd;
   document.getElementById('goodsCancel').onclick = () => {
     document.getElementById('goodsModal').classList.remove('show');
   };
