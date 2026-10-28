@@ -22,6 +22,9 @@ type (
 		// AdminList 后台用户列表。支持关键字（用户名/昵称/邮箱/手机号）、角色、状态筛选，
 		// 并附带订单数与累计消费，方便判断这个账号值不值得留着。
 		AdminList(ctx context.Context, in model.UserAdminListInput) ([]model.UserAdminItem, int, error)
+		// UpdateProfile 用户自助修改资料：昵称、邮箱、手机号。
+		// 角色、状态、用户名都不在可改范围内，所以这个接口即便被构造调用也越不了权。
+		UpdateProfile(ctx context.Context, in model.UserProfileInput) (*entity.User, error)
 		// AdminSave 编辑用户：昵称、角色、状态。
 		// operatorID 是当前登录的管理员，用来拦住「把自己锁在门外」的操作。
 		AdminSave(ctx context.Context, in model.UserSaveInput, operatorID uint64) (uint64, error)

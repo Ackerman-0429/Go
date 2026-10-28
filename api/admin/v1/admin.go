@@ -109,13 +109,15 @@ type GoodsDeleteRes struct{}
 // 订单管理
 // ---------------------------------------------------------------------------
 
-// OrderListReq 全站订单列表
+// OrderListReq 全站订单列表。userId 非 0 时只看该用户的订单，
+// 供用户管理页「查看该用户订单」复用同一个接口，不必再开一个平行接口。
 type OrderListReq struct {
 	g.Meta   `path:"/order/list" method:"get" summary:"全站订单列表" tags:"后台-订单"`
 	Page     int    `json:"page"     d:"1"  v:"min:1#页码最小为1"                  dc:"页码"`
 	PageSize int    `json:"pageSize" d:"10" v:"between:1,100#每页数量需在1-100之间" dc:"每页数量"`
 	Status   int    `json:"status"   d:"-1" v:"in:-1,0,1,2,3,4#状态不合法"        dc:"按状态筛选，-1 全部"`
 	Keyword  string `json:"keyword"                                              dc:"按订单号/收货人搜索"`
+	UserId   uint64 `json:"userId"   d:"0"                                       dc:"按下单用户筛选，0 为全部"`
 }
 
 // OrderItem 后台订单条目
@@ -143,6 +145,41 @@ type OrderListRes struct {
 	Total    int         `json:"total"    dc:"总条数"`
 	Page     int         `json:"page"     dc:"当前页"`
 	PageSize int         `json:"pageSize" dc:"每页数量"`
+}
+
+// OrderDetailReq 后台查看单笔订单详情，不受下单用户限制
+type OrderDetailReq struct {
+	g.Meta `path:"/order/detail" method:"get" summary:"订单详情（后台）" tags:"后台-订单"`
+	ID     uint64 `json:"id" v:"required|min:1#请提供订单ID|订单ID不合法" dc:"订单ID"`
+}
+
+// OrderGoodsItem 订单内单个商品的快照信息
+type OrderGoodsItem struct {
+	GoodsID   uint64  `json:"goodsId"   dc:"商品ID"`
+	GoodsName string  `json:"goodsName" dc:"下单时商品名"`
+	Cover     string  `json:"cover"     dc:"下单时封面图"`
+	Price     float64 `json:"price"     dc:"下单时单价"`
+	Quantity  uint    `json:"quantity"  dc:"数量"`
+	Subtotal  float64 `json:"subtotal"  dc:"小计"`
+}
+
+// OrderDetailRes 订单详情，含明细与下单人，客服核对时一眼看清买了什么
+type OrderDetailRes struct {
+	ID              uint64           `json:"id"              dc:"订单ID"`
+	OrderNo         string           `json:"orderNo"         dc:"订单号"`
+	UserID          uint64           `json:"userId"          dc:"下单用户ID"`
+	Username        string           `json:"username"        dc:"下单用户"`
+	TotalAmount     float64          `json:"totalAmount"     dc:"订单金额"`
+	Status          uint             `json:"status"          dc:"状态"`
+	StatusText      string           `json:"statusText"      dc:"状态文案"`
+	Quantity        uint             `json:"quantity"        dc:"商品总件数"`
+	ReceiverName    string           `json:"receiverName"    dc:"收货人"`
+	ReceiverPhone   string           `json:"receiverPhone"   dc:"收货电话"`
+	ReceiverAddress string           `json:"receiverAddress" dc:"收货地址"`
+	Remark          string           `json:"remark"          dc:"买家备注"`
+	CreatedAt       string           `json:"createdAt"       dc:"下单时间"`
+	PaidAt          string           `json:"paidAt"          dc:"付款时间"`
+	Items           []OrderGoodsItem `json:"items"           dc:"订单明细"`
 }
 
 // OrderShipReq 发货，已付款 → 已发货

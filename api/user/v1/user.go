@@ -48,6 +48,25 @@ type InfoRes struct {
 	Role     uint   `json:"role"     dc:"角色：0普通用户 1管理员"`
 }
 
+// ProfileReq 修改自己的资料。只能改昵称、邮箱、手机号：
+// 用户名是登录身份、角色与状态是管理员的权限，这些都不开放给用户自助修改。
+type ProfileReq struct {
+	g.Meta   `path:"/user/profile" method:"post" summary:"修改个人资料" tags:"用户"`
+	Nickname string `json:"nickname" v:"max-length:20#昵称不能超过20个字符"  dc:"昵称，留空则沿用用户名"`
+	Email    string `json:"email"    v:"email#邮箱格式不正确"           dc:"邮箱，留空表示不填"`
+	Phone    string `json:"phone"    v:"phone-loose#手机号格式不正确"    dc:"手机号，留空表示不填"`
+}
+
+// ProfileRes 修改后的资料，前端可直接用来刷新页面顶部的昵称
+type ProfileRes struct {
+	ID       uint64 `json:"id"       dc:"用户ID"`
+	Username string `json:"username" dc:"用户名"`
+	Nickname string `json:"nickname" dc:"昵称"`
+	Email    string `json:"email"    dc:"邮箱"`
+	Phone    string `json:"phone"    dc:"手机号"`
+	Role     uint   `json:"role"     dc:"角色：0普通用户 1管理员"`
+}
+
 // LogoutReq 退出登录
 type LogoutReq struct {
 	g.Meta `path:"/user/logout" method:"post" summary:"退出登录" tags:"用户"`

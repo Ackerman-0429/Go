@@ -74,7 +74,7 @@ utility/                通用工具（金额分换算等）
 
 | 模块 | 接口 | 说明 |
 | --- | --- | --- |
-| 用户 | `POST /user/register`、`POST /user/login`、`POST /user/logout`、`GET /user/info` | 注册/登录写入 Session |
+| 用户 | `POST /user/register`、`POST /user/login`、`POST /user/logout`、`GET /user/info`、`POST /user/profile` | 注册/登录写入 Session；`profile` 供用户自助改昵称/邮箱/手机号 |
 | 分类 | `GET /category/list` | 二级分类，深度优先排序 |
 | 商品 | `GET /goods/list`、`GET /goods/detail` | 仅返回上架商品 |
 | 购物车 | `POST /cart/add|update|delete|clear`、`GET /cart/list` | 需登录 |
@@ -115,7 +115,8 @@ utility/                通用工具（金额分换算等）
 | GET | `/admin/category/list` | 分类列表，含停用分类，带商品数与子分类数 |
 | POST | `/admin/category/save` | 新建或编辑分类（`id` 为空即新建，仅支持两级） |
 | POST | `/admin/category/delete` | 删除分类（有子分类或商品时拒绝，返回具体原因） |
-| GET | `/admin/order/list` | 全站订单，支持状态/订单号/收货人筛选 |
+| GET | `/admin/order/list` | 全站订单，支持状态/订单号/收货人筛选；带 `userId` 时只看该用户的订单 |
+| GET | `/admin/order/detail` | 单笔订单明细（含商品快照与下单人），不受用户限制 |
 | POST | `/admin/order/ship` | 发货：已付款 → 已发货 |
 | POST | `/admin/order/finish` | 完成：已发货 → 已完成 |
 | GET | `/admin/user/list` | 用户列表，支持关键字/角色/状态筛选，带订单数与累计消费 |
@@ -161,6 +162,16 @@ mysql -h 127.0.0.1 -u root -p gfstudy < manifest/sql/upgrade/20261028_admin_role
 - 昵称留空时自动回退成用户名，避免列表里出现空白行。
 - 累计消费只统计已付款、已发货、已完成的订单，待付款和已取消不计入。
 - 重置密码后原密码立即失效，但不会踢掉已登录的会话；要立刻断开请先禁用再启用该账号。
+- 用户管理表格每行的「订单」可以下钻到该用户全部订单（复用 `/admin/order/list?userId=`），
+  点「明细」再看单笔订单的商品快照。订单管理页每行也有同样的「明细」按钮。
+
+**用户自助改资料**（`POST /user/profile`）：
+
+- 只开放昵称、邮箱、手机号三项。用户名是登录身份，角色与状态是管理员权限，都不在可改范围内，
+  所以即便前端被篡改也越不了权。
+- 用户控制器整体挂在**公开分组**（登录/注册本身不需要登录态），所以这个接口自己从 Session
+  取用户 ID，并在 logic 里回查 `user.status`：管理员禁用账号后，旧 Session 也改不了资料。
+- 邮箱/手机号的唯一性校验排除自己（`checkContactUnique(..., id)`），否则原样提交会被判重复。
 
 ## 代码生成约定
 

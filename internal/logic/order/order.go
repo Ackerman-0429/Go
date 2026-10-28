@@ -361,13 +361,16 @@ func aggregateItems(ctx context.Context, orderIDs []uint64) (map[uint64]*itemAgg
 	return agg, nil
 }
 
-// AdminList 全站订单列表，跨用户查询，支持按状态与订单号/收货人搜索。
+// AdminList 全站订单列表，跨用户查询，支持按状态、订单号/收货人与下单用户筛选。
 func (s *sOrder) AdminList(ctx context.Context, in model.OrderAdminListInput) ([]model.OrderAdminItem, int, error) {
 	cols := dao.Orders.Columns()
 	m := dao.Orders.Ctx(ctx)
 
 	if in.Status >= 0 {
 		m = m.Where(cols.Status, in.Status)
+	}
+	if in.UserID > 0 {
+		m = m.Where(cols.UserId, in.UserID)
 	}
 	if in.Keyword != "" {
 		like := "%" + in.Keyword + "%"
@@ -432,6 +435,40 @@ func (s *sOrder) AdminList(ctx context.Context, in model.OrderAdminListInput) ([
 		out = append(out, item)
 	}
 	return out, total, nil
+}
+
+// AdminDetail 后台查看单笔订单详情。与用户端 Detail 的区别是不带 user_id 过滤，
+// 管理员可以查任意用户的订单，客服核对时不必先登录对方账号。
+func (s *sOrder) AdminDetail(ctx context.Context, orderID uint64) (*model.OrderAdminDetail, error) {
+	itemCols := dao.OrderItem.Columns()
+
+	var order *entity.Orders
+	if err := dao.Orders.Ctx(ctx).WherePri(orderID).Scan(&order); err != nil {
+		return nil, err
+	}
+	if order == nil {
+		return nil, gerror.NewCode(gcode.CodeNotFound, "订单不存在")
+	}
+
+	var items []entity.OrderItem
+	if err := dao.OrderItem.Ctx(ctx).
+		Where(itemCols.OrderId, orderID).
+		OrderAsc(itemCols.Id).
+		Scan(&items); err != nil {
+		return nil, err
+	}
+
+	out := &model.OrderAdminDetail{Order: order, Items: items}
+
+	// 订单表只存 user_id，用户名单独查一次。用户已被删除也不影响订单展示。
+	var user *entity.User
+	if err := dao.User.Ctx(ctx).WherePri(order.UserId).Scan(&user); err != nil {
+		return nil, err
+	}
+	if user != nil {
+		out.Username = user.Username
+	}
+	return out, nil
 }
 
 // AdminShip 发货：已付款 → 已发货。

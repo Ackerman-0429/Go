@@ -1,6 +1,10 @@
 package model
 
-import "github.com/gogf/gf/v2/os/gtime"
+import (
+	"github.com/gogf/gf/v2/os/gtime"
+
+	"goshop/internal/model/entity"
+)
 
 // GoodsAdminListInput 后台商品列表查询条件。与前台不同，Status 可筛选下架商品。
 type GoodsAdminListInput struct {
@@ -25,12 +29,14 @@ type GoodsSaveInput struct {
 	Status     uint
 }
 
-// OrderAdminListInput 后台订单列表查询条件，跨用户查询
+// OrderAdminListInput 后台订单列表查询条件，跨用户查询。
+// UserID 非 0 时只查该用户的订单，用于从用户管理页下钻。
 type OrderAdminListInput struct {
 	Page     int
 	PageSize int
 	Status   int // -1 表示全部
 	Keyword  string
+	UserID   uint64 // 0 表示全部用户
 }
 
 // OrderAdminItem 后台订单条目，比用户端多了下单人信息
@@ -49,6 +55,14 @@ type OrderAdminItem struct {
 	ReceiverAddress string
 	CreatedAt       *gtime.Time
 	PaidAt          *gtime.Time
+}
+
+// OrderAdminDetail 后台订单详情：订单主体 + 明细 + 下单人用户名。
+// 与用户端 OrderDetail 的区别是不带用户维度过滤，管理员可以查任意订单。
+type OrderAdminDetail struct {
+	Order    *entity.Orders
+	Items    []entity.OrderItem
+	Username string
 }
 
 // AdminStats 后台概览统计

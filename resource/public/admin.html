@@ -89,6 +89,20 @@
   .tag.s4 { background: #f3f3f3; color: #999; }
   .ops { display: flex; gap: 8px; }
   .muted { color: #999; }
+
+  /* 用户订单下钻与订单明细 */
+  .uorder { border: 1px solid #eee; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+  .uorder .top {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 12px; color: #999;
+  }
+  .uorder .mid { display: flex; align-items: center; gap: 14px; margin-top: 8px; }
+  .uorder .mid .goods { flex: 1; font-size: 13px; color: #333; }
+  .uorder .mid small { color: #999; font-size: 11px; }
+  .dline { display: flex; justify-content: space-between; gap: 16px; font-size: 13px; padding: 6px 0; color: #666; }
+  .dline b { font-weight: 500; color: #1a1a1a; text-align: right; }
+  .ditem { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px dashed #f0f0f0; }
+  .ditem img { width: 44px; height: 44px; border-radius: 6px; object-fit: cover; background: #f2f2f2; }
   .pager { display: flex; align-items: center; gap: 12px; padding: 14px 16px; font-size: 13px; color: #666; }
   .pager .spacer { margin-left: auto; }
   .empty { padding: 40px; text-align: center; color: #999; font-size: 13px; }
@@ -245,7 +259,7 @@
             <th style="width:90px">状态</th>
             <th>收货人</th>
             <th style="width:150px">下单时间</th>
-            <th style="width:160px">操作</th>
+            <th style="width:190px">操作</th>
           </tr>
         </thead>
         <tbody id="orderBody"></tbody>
@@ -283,7 +297,7 @@
             <th style="width:90px">状态</th>
             <th style="width:80px">订单</th>
             <th style="width:110px">消费</th>
-            <th style="width:230px">操作</th>
+            <th style="width:290px">操作</th>
           </tr>
         </thead>
         <tbody id="userBody"></tbody>
@@ -462,6 +476,43 @@
         <button type="submit" class="btn" id="pwdSubmit">确认重置</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- 某用户的订单列表：从用户管理页下钻 -->
+<div class="modal" id="userOrderModal">
+  <div class="dialog" style="max-width:760px">
+    <h3 id="uoTitle">用户订单</h3>
+    <p class="hint" id="uoHint"></p>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <select id="uoStatus" style="padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;outline:none">
+        <option value="-1">全部状态</option>
+        <option value="0">待付款</option>
+        <option value="1">已付款</option>
+        <option value="2">已发货</option>
+        <option value="3">已完成</option>
+        <option value="4">已取消</option>
+      </select>
+      <span class="muted" id="uoMeta" style="font-size:12px;margin-left:auto"></span>
+    </div>
+    <div id="uoList" style="max-height:48vh;overflow:auto"></div>
+    <div class="dialog-foot">
+      <button class="btn ghost sm" id="uoPrev">上一页</button>
+      <button class="btn ghost sm" id="uoNext">下一页</button>
+      <button class="btn" id="uoClose">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 订单明细：订单管理页与「用户订单」弹窗共用，所以 z-index 抬高一档 -->
+<div class="modal" id="orderDetailModal" style="z-index:60">
+  <div class="dialog" style="max-width:640px">
+    <h3 id="odTitle">订单详情</h3>
+    <p class="hint" id="odHint"></p>
+    <div id="odBody"></div>
+    <div class="dialog-foot">
+      <button class="btn ghost" id="odClose">关闭</button>
+    </div>
   </div>
 </div>
 
@@ -885,11 +936,12 @@ function renderOrders(list) {
     return;
   }
   body.innerHTML = list.map((o) => {
-    let ops = '<span class="muted">—</span>';
+    // 详情对所有状态都开放；发货/完成按当前状态给
+    let ops = `<button class="btn ghost sm" onclick="viewOrderDetail(${o.id})">明细</button>`;
     if (o.status === 1) {
-      ops = `<button class="btn sm" onclick="shipOrder(${o.id})">发货</button>`;
+      ops += ` <button class="btn sm" onclick="shipOrder(${o.id})">发货</button>`;
     } else if (o.status === 2) {
-      ops = `<button class="btn ghost sm" onclick="finishOrder(${o.id})">标记完成</button>`;
+      ops += ` <button class="btn ghost sm" onclick="finishOrder(${o.id})">标记完成</button>`;
     }
     return `
       <tr>
@@ -985,6 +1037,7 @@ function renderUsers(list) {
         <td class="price">${money(u.totalSpent)}</td>
         <td>
           <div class="ops">
+            <button class="btn ghost sm" onclick="viewUserOrders(${u.id})">订单</button>
             <button class="btn ghost sm" onclick="editUser(${u.id})">编辑</button>
             ${self ? '' : `
             <button class="btn ghost sm" onclick="toggleUser(${u.id})">${u.status === 1 ? '禁用' : '启用'}</button>
@@ -1124,6 +1177,107 @@ async function submitPwd(e) {
 }
 
 // ---------------------------------------------------------------------------
+// 用户订单下钻 + 订单明细
+// ---------------------------------------------------------------------------
+const uo = { userId: 0, page: 1, pageSize: 10, status: -1, total: 0 };
+
+// 从用户管理表格进来看某个人的订单：复用后台订单列表，只是多带一个 userId
+function viewUserOrders(id) {
+  const u = userCache.find((x) => x.id === id);
+  if (!u) return;
+  uo.userId = u.id;
+  uo.page = 1;
+  uo.status = -1;
+  document.getElementById('uoStatus').value = '-1';
+  document.getElementById('uoTitle').textContent = `订单 · ${u.nickname || u.username}`;
+  document.getElementById('uoHint').textContent =
+    `@${u.username} · 累计 ${u.orderCount} 笔，实付合计 ${money(u.totalSpent)}（不含待付款与已取消）`;
+  document.getElementById('userOrderModal').classList.add('show');
+  loadUserOrders();
+}
+
+async function loadUserOrders() {
+  const box = document.getElementById('uoList');
+  box.innerHTML = '<div class="empty">加载中…</div>';
+  const qs = new URLSearchParams({
+    page: uo.page, pageSize: uo.pageSize, status: uo.status, userId: uo.userId,
+  });
+  try {
+    const d = await api('/admin/order/list?' + qs.toString());
+    uo.total = d.total;
+    renderUserOrders(d.list || []);
+  } catch (e) {
+    box.innerHTML = `<div class="empty">加载失败：${esc(e.message)}</div>`;
+  }
+}
+
+function renderUserOrders(list) {
+  const box = document.getElementById('uoList');
+  const pages = Math.max(1, Math.ceil(uo.total / uo.pageSize));
+  document.getElementById('uoMeta').textContent = `共 ${uo.total} 笔 · 第 ${uo.page} / ${pages} 页`;
+  document.getElementById('uoPrev').disabled = uo.page <= 1;
+  document.getElementById('uoNext').disabled = uo.page >= pages;
+
+  if (!list.length) {
+    box.innerHTML = '<div class="empty">该用户名下没有符合条件的订单</div>';
+    return;
+  }
+  box.innerHTML = list.map((o) => `
+    <div class="uorder">
+      <div class="top">
+        <span>${esc(o.orderNo)} · ${esc(o.createdAt)}</span>
+        <span class="tag s${o.status}">${esc(o.statusText)}</span>
+      </div>
+      <div class="mid">
+        <div class="goods">
+          ${esc(o.firstName || '—')}${o.itemCount > 1 ? ` 等 ${o.itemCount} 种` : ''}
+          <small style="display:block">共 ${o.quantity} 件</small>
+        </div>
+        <span class="price">${money(o.totalAmount)}</span>
+        <button class="btn ghost sm" onclick="viewOrderDetail(${o.id})">明细</button>
+      </div>
+    </div>`).join('');
+}
+
+// 订单明细：订单管理页与「用户订单」弹窗共用，后者在它下层继续留着
+async function viewOrderDetail(id) {
+  const body = document.getElementById('odBody');
+  document.getElementById('odTitle').textContent = '订单详情';
+  document.getElementById('odHint').textContent = '';
+  body.innerHTML = '<div class="empty">加载中…</div>';
+  document.getElementById('orderDetailModal').classList.add('show');
+  try {
+    const d = await api('/admin/order/detail?id=' + id);
+    document.getElementById('odTitle').textContent = '订单 ' + d.orderNo;
+    document.getElementById('odHint').textContent =
+      `下单人 @${d.username || d.userId} · ${d.statusText}`;
+    body.innerHTML = `
+      <div class="dline"><span>下单时间</span><b>${esc(d.createdAt)}</b></div>
+      ${d.paidAt ? `<div class="dline"><span>付款时间</span><b>${esc(d.paidAt)}</b></div>` : ''}
+      <div class="dline"><span>收货人</span><b>${esc(d.receiverName)} ${esc(d.receiverPhone)}</b></div>
+      <div class="dline"><span>收货地址</span><b style="max-width:64%">${esc(d.receiverAddress)}</b></div>
+      ${d.remark ? `<div class="dline"><span>买家备注</span><b style="max-width:64%;font-weight:400">${esc(d.remark)}</b></div>` : ''}
+      <div style="margin-top:10px;border-top:1px dashed #eee">
+        ${d.items.map((i) => `
+          <div class="ditem">
+            <img src="${esc(i.cover)}" alt="" onerror="this.style.visibility='hidden'">
+            <div style="flex:1;font-size:13px">
+              ${esc(i.goodsName)}
+              <div style="color:#999;font-size:12px">${money(i.price)} × ${i.quantity}</div>
+            </div>
+            <div style="color:#e4393c;font-size:13px">${money(i.subtotal)}</div>
+          </div>`).join('')}
+      </div>
+      <div class="dline" style="border-top:1px solid #eee;margin-top:8px;padding-top:10px">
+        <span>合计（${d.quantity} 件 / ${d.items.length} 种）</span>
+        <b class="price" style="font-size:16px">${money(d.totalAmount)}</b>
+      </div>`;
+  } catch (e) {
+    body.innerHTML = `<div class="empty">加载失败：${esc(e.message)}</div>`;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // 分页
 // ---------------------------------------------------------------------------
 function renderPager(id, page, pageSize, total, onJump) {
@@ -1216,6 +1370,24 @@ async function boot() {
     document.getElementById('pwdModal').classList.remove('show');
   };
   document.getElementById('pwdForm').onsubmit = submitPwd;
+  document.getElementById('uoClose').onclick = () => {
+    document.getElementById('userOrderModal').classList.remove('show');
+  };
+  document.getElementById('uoStatus').onchange = () => {
+    uo.status = document.getElementById('uoStatus').value;
+    uo.page = 1;
+    loadUserOrders();
+  };
+  document.getElementById('uoPrev').onclick = () => {
+    if (uo.page > 1) { uo.page -= 1; loadUserOrders(); }
+  };
+  document.getElementById('uoNext').onclick = () => {
+    uo.page += 1;
+    loadUserOrders();
+  };
+  document.getElementById('odClose').onclick = () => {
+    document.getElementById('orderDetailModal').classList.remove('show');
+  };
   document.getElementById('goodsCancel').onclick = () => {
     document.getElementById('goodsModal').classList.remove('show');
   };

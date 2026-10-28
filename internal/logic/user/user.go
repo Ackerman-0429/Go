@@ -197,6 +197,50 @@ func orderStatsByUser(ctx context.Context, userIDs []uint64) (map[uint64]*orderS
 	return out, nil
 }
 
+// UpdateProfile 用户自助修改资料：昵称、邮箱、手机号。
+// 角色、状态、用户名都不在可改范围内，所以这个接口即便被构造调用也越不了权。
+func (s *sUser) UpdateProfile(ctx context.Context, in model.UserProfileInput) (*entity.User, error) {
+	cols := dao.User.Columns()
+
+	var user *entity.User
+	if err := dao.User.Ctx(ctx).WherePri(in.ID).Scan(&user); err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, gerror.NewCode(gcode.CodeNotFound, "用户不存在")
+	}
+	// 这个接口不在 Auth 中间件之后（登录/注册也在同一个控制器上），
+	// 所以禁用状态要在这里自己拦，避免老 Session 还能改资料。
+	if user.Status != consts.UserStatusNormal {
+		return nil, gerror.NewCode(gcode.CodeNotAuthorized, "账号已被禁用")
+	}
+
+	email, phone := strings.TrimSpace(in.Email), strings.TrimSpace(in.Phone)
+	// 排除自己：原样提交未改动的邮箱/手机号不算重复
+	if err := checkContactUnique(ctx, email, phone, user.Id); err != nil {
+		return nil, err
+	}
+
+	nickname := strings.TrimSpace(in.Nickname)
+	if nickname == "" {
+		nickname = user.Username
+	}
+
+	if _, err := dao.User.Ctx(ctx).WherePri(user.Id).Data(g.Map{
+		cols.Nickname: nickname,
+		cols.Email:    nullableContact(email),
+		cols.Phone:    nullableContact(phone),
+	}).Update(); err != nil {
+		return nil, err
+	}
+
+	// 回填返回值，前端拿到就能刷新顶栏昵称，省一次 /user/info
+	user.Nickname = nickname
+	user.Email = email
+	user.Phone = phone
+	return user, nil
+}
+
 // AdminSave 编辑用户：昵称、角色、状态。
 // operatorID 是当前登录的管理员，用来拦住「把自己锁在门外」的操作。
 func (s *sUser) AdminSave(ctx context.Context, in model.UserSaveInput, operatorID uint64) (uint64, error) {

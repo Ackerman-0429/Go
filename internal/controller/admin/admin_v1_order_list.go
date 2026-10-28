@@ -16,6 +16,7 @@ func (c *ControllerV1) OrderList(ctx context.Context, req *v1.OrderListReq) (res
 		PageSize: req.PageSize,
 		Status:   req.Status,
 		Keyword:  req.Keyword,
+		UserID:   req.UserId,
 	})
 	if err != nil {
 		return nil, err

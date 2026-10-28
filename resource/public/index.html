@@ -412,6 +412,29 @@
   </div>
 </div>
 
+<div class="panel-modal" id="profileModal">
+  <form class="panel" onsubmit="return submitProfile(event)">
+    <div class="ph">
+      <h3>个人资料</h3>
+      <button type="button" class="link" onclick="closePanel('profileModal')">关闭</button>
+    </div>
+    <div class="pb">
+      <div class="field">
+        <input id="pfUser" disabled style="background:#f7f7f7;color:#888">
+      </div>
+      <div class="field"><input id="pfNick" placeholder="昵称，最多 20 个字符" maxlength="20"></div>
+      <div class="field"><input id="pfEmail" placeholder="邮箱（选填，不可与其他账号重复）" maxlength="100"></div>
+      <div class="field"><input id="pfPhone" placeholder="手机号（选填，11 位）" maxlength="20"></div>
+      <div class="tip" id="profileTip"></div>
+    </div>
+    <div class="pf">
+      <span style="font-size:12px;color:#999;margin-right:auto">用户名是登录身份，不可修改</span>
+      <button class="btn ghost sm" type="button" onclick="closePanel('profileModal')">取消</button>
+      <button class="btn" id="profileBtn" type="submit">保存</button>
+    </div>
+  </form>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -573,11 +596,51 @@ function renderUser() {
   const el = document.getElementById('userArea');
   if (me) {
     el.innerHTML = `<span class="uname">👤 ${me.nickname || me.username}</span>
+      <button class="link" onclick="openProfile()" style="margin-left:10px">资料</button>
       ${me.role === 1 ? '<a class="link" href="/admin.html" style="margin-left:10px">管理后台</a>' : ''}
       <button class="link" onclick="logout()" style="margin-left:10px">退出</button>`;
   } else {
     el.innerHTML = '<button class="btn ghost" onclick="openLogin()">登录 / 注册</button>';
   }
+}
+
+/* ---------------- 个人资料 ---------------- */
+
+function openProfile() {
+  if (!me) { openLogin('login'); return; }
+  document.getElementById('pfUser').value = me.username;
+  document.getElementById('pfNick').value = me.nickname || '';
+  document.getElementById('pfEmail').value = me.email || '';
+  document.getElementById('pfPhone').value = me.phone || '';
+  document.getElementById('profileTip').textContent = '';
+  document.getElementById('profileModal').classList.add('show');
+}
+
+async function submitProfile(e) {
+  e.preventDefault();
+  const tip = document.getElementById('profileTip');
+  const btn = document.getElementById('profileBtn');
+  const payload = {
+    nickname: document.getElementById('pfNick').value.trim(),
+    email: document.getElementById('pfEmail').value.trim(),
+    phone: document.getElementById('pfPhone').value.trim(),
+  };
+
+  btn.disabled = true;
+  btn.textContent = '保存中…';
+  try {
+    // 接口返回的就是最新资料，直接替换本地 me，不用再请求 /user/info
+    me = await api('/user/profile', { method: 'POST', body: payload });
+    renderUser();
+    closePanel('profileModal');
+    toast('资料已更新');
+  } catch (err) {
+    tip.textContent = err.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '保存';
+  }
+  return false;
 }
 
 function openLogin(mode) {

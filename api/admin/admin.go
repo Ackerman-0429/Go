@@ -17,6 +17,7 @@ type IAdminV1 interface {
 	GoodsStatus(ctx context.Context, req *v1.GoodsStatusReq) (res *v1.GoodsStatusRes, err error)
 	GoodsDelete(ctx context.Context, req *v1.GoodsDeleteReq) (res *v1.GoodsDeleteRes, err error)
 	OrderList(ctx context.Context, req *v1.OrderListReq) (res *v1.OrderListRes, err error)
+	OrderDetail(ctx context.Context, req *v1.OrderDetailReq) (res *v1.OrderDetailRes, err error)
 	OrderShip(ctx context.Context, req *v1.OrderShipReq) (res *v1.OrderShipRes, err error)
 	OrderFinish(ctx context.Context, req *v1.OrderFinishReq) (res *v1.OrderFinishRes, err error)
 	CategoryList(ctx context.Context, req *v1.CategoryListReq) (res *v1.CategoryListRes, err error)
