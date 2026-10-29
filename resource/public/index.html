@@ -307,6 +307,35 @@
   .ditem img { width: 48px; height: 48px; border-radius: 6px; object-fit: cover; background: #f2f2f2; }
   .ditem .dn { flex: 1; font-size: 13px; }
 
+  /* 商品评价 */
+  .stars { color: #f5a623; letter-spacing: 1px; }
+  .stars i { font-style: normal; }
+  .stars i.off { color: #ddd; }
+  .rsum { display: flex; align-items: center; gap: 12px; margin: 0 0 10px; }
+  .rsum .big { font-size: 28px; font-weight: 600; color: #e4393c; line-height: 1; }
+  .rsum .cnt { font-size: 12px; color: #999; margin-top: 2px; }
+  .rtabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+  .rtab {
+    font-size: 12px; padding: 4px 10px; border: 1px solid #e6e6e6;
+    border-radius: 14px; background: #fff; color: #666; cursor: pointer;
+  }
+  .rtab.on { border-color: #e4393c; color: #e4393c; background: #fff5f5; }
+  .rtab:disabled { color: #ccc; border-color: #f0f0f0; cursor: default; }
+  .rlist { border-top: 1px solid #f2f2f2; }
+  .ritem { padding: 12px 0; border-bottom: 1px solid #f5f5f5; }
+  .ritem .rh {
+    display: flex; justify-content: space-between;
+    font-size: 12px; color: #999; margin-bottom: 4px;
+  }
+  .ritem .rt { font-size: 13px; color: #333; line-height: 1.75; margin-top: 4px; word-break: break-word; }
+  .rmore { width: 100%; margin-top: 12px; }
+
+  /* 打分星条 */
+  .rscore { display: flex; align-items: center; gap: 8px; }
+  .rscore .pts { display: flex; gap: 4px; font-size: 26px; line-height: 1; color: #ddd; cursor: pointer; }
+  .rscore .pts span.on { color: #f5a623; }
+  .rscore .lbl { font-size: 13px; color: #999; }
+
   @media (max-width: 640px) {
     .modal .box { grid-template-columns: 1fr; }
     main { padding: 16px; }
@@ -461,6 +490,39 @@
   </form>
 </div>
 
+<div class="panel-modal" id="reviewModal">
+  <form class="panel" onsubmit="return submitReview(event)">
+    <div class="ph">
+      <h3 id="rvTitle">评价商品</h3>
+      <button type="button" class="link" onclick="closePanel('reviewModal')">关闭</button>
+    </div>
+    <div class="pb">
+      <div class="rscore">
+        <div class="pts" id="rvStars"></div>
+        <span class="lbl" id="rvScoreText">很好</span>
+      </div>
+      <div class="field" style="margin-top:14px">
+        <textarea id="rvText" maxlength="500" rows="4" placeholder="说说这件商品怎么样（选填，最多 500 字）"
+          oninput="document.getElementById('rvCounter').textContent = this.value.length + '/500'"
+          style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;
+                 font-family:inherit;line-height:1.7;outline:none;resize:vertical"></textarea>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <label style="font-size:13px;color:#666;cursor:pointer">
+          <input type="checkbox" id="rvAnon" style="vertical-align:-2px"> 匿名评价
+        </label>
+        <span style="font-size:12px;color:#bbb" id="rvCounter">0/500</span>
+      </div>
+      <div class="tip" id="rvTip"></div>
+    </div>
+    <div class="pf">
+      <span style="font-size:12px;color:#999;margin-right:auto">只有已完成的订单可以评价，每件商品评一次</span>
+      <button class="btn ghost sm" type="button" onclick="closePanel('reviewModal')">取消</button>
+      <button class="btn" id="rvBtn" type="submit">提交评价</button>
+    </div>
+  </form>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -568,24 +630,211 @@ async function openDetail(id) {
     const g = await api('/goods/detail?id=' + id);
     const thumbs = (g.images || []).map(src =>
       `<img src="${src}" onerror="this.style.display='none'">`).join('');
+    const ratingLine = g.reviewCount
+      ? `${starsHtml(Math.round(g.rating))} <b style="color:#e4393c">${g.rating.toFixed(1)}</b>
+         <span style="color:#999">· ${g.reviewCount} 条评价</span>`
+      : '<span style="color:#bbb">暂无评价</span>';
     document.getElementById('modalBox').innerHTML = `
       <img class="pic" src="${g.cover}" onerror="this.style.visibility='hidden'">
       <div class="detail">
         <h2>${g.name}</h2>
         <div class="dsub">${g.subtitle || ''}</div>
         <div class="dprice">${money(g.price)}</div>
-        <div class="dstock">库存 ${g.stock} 件 · 已售 ${g.sales} 件</div>
+        <div class="dstock" style="margin-bottom:6px">库存 ${g.stock} 件 · 已售 ${g.sales} 件</div>
+        <div class="dstock" style="margin-bottom:20px;font-size:14px">${ratingLine}</div>
         <div class="buy">
           <input id="dq" type="number" value="1" min="1" max="${g.stock}">
           <button class="btn" onclick="addFromDetail(${g.id})">加入购物车</button>
         </div>
         <div class="dtext">${g.detail || '暂无详情'}</div>
         <div class="thumbs">${thumbs}</div>
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid #eee">
+          <div style="font-size:15px;font-weight:600;margin-bottom:12px">商品评价</div>
+          <div id="rvBox"></div>
+        </div>
       </div>`;
     document.getElementById('modal').classList.add('show');
+    initReviews(g);
   } catch (e) {
     toast('加载详情失败：' + e.message);
   }
+}
+
+/* ---------------- 评价 ---------------- */
+
+// 当前详情页正在看的评价列表状态
+let rv = { goodsId: 0, rating: 0, page: 1, pageSize: 5, total: 0, loaded: 0, avg: 0, count: 0, counts: [0, 0, 0, 0, 0] };
+
+// 星级图标：实心到 filled 为止，其余置灰
+function starsHtml(filled) {
+  let html = '';
+  for (let i = 1; i <= 5; i++) {
+    html += `<i class="${i <= filled ? '' : 'off'}">★</i>`;
+  }
+  return `<span class="stars">${html}</span>`;
+}
+
+// 用户输入必须转义，评价内容是唯一由用户自由填写并回显的字段
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, (ch) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[ch]));
+}
+
+function initReviews(g) {
+  rv = {
+    goodsId: g.id, rating: 0, page: 1, pageSize: 5,
+    total: 0, loaded: 0, avg: g.rating, count: g.reviewCount, counts: [0, 0, 0, 0, 0],
+  };
+  loadReviews(true);
+}
+
+function reviewShell() {
+  const tabs = [`<button type="button" class="rtab ${rv.rating === 0 ? 'on' : ''}" onclick="filterReviews(0)">全部 ${rv.count}</button>`];
+  for (let s = 5; s >= 1; s--) {
+    const n = rv.counts[s - 1] || 0;
+    tabs.push(`<button type="button" class="rtab ${rv.rating === s ? 'on' : ''}"
+      ${n ? '' : 'disabled'} onclick="filterReviews(${s})">${s} 星 ${n}</button>`);
+  }
+  return `
+    <div class="rsum">
+      <span class="big">${rv.count ? rv.avg.toFixed(1) : '—'}</span>
+      <span>
+        ${starsHtml(Math.round(rv.avg))}
+        <div class="cnt">${rv.count ? rv.count + ' 条评价' : '还没有人评价'}</div>
+      </span>
+    </div>
+    <div class="rtabs">${tabs.join('')}</div>
+    <div class="rlist" id="rvList"></div>
+    <button type="button" class="btn ghost sm rmore" id="rvMore" style="display:none" onclick="moreReviews()">加载更多</button>`;
+}
+
+async function loadReviews(reset) {
+  const box = document.getElementById('rvBox');
+  if (!box) return;
+  if (reset) { rv.page = 1; rv.loaded = 0; }
+
+  const qs = new URLSearchParams({ goodsId: rv.goodsId, page: rv.page, pageSize: rv.pageSize });
+  if (rv.rating) qs.set('rating', rv.rating);
+
+  try {
+    const d = await api('/goods/reviews?' + qs.toString());
+    rv.total = d.total;
+    rv.avg = d.avgRating;
+    rv.count = d.count;
+    rv.counts = d.counts || [0, 0, 0, 0, 0];
+    if (reset) box.innerHTML = reviewShell();
+
+    const list = document.getElementById('rvList');
+    if (d.list.length) {
+      list.insertAdjacentHTML('beforeend', d.list.map(reviewItemHtml).join(''));
+    } else if (rv.loaded === 0) {
+      list.innerHTML = rv.count === 0
+        ? '<div class="meta" style="padding:20px 0">还没有评价，收到货的同学来说两句吧</div>'
+        : '<div class="meta" style="padding:20px 0">这个星级下还没有评价</div>';
+    }
+    rv.loaded += d.list.length;
+
+    const more = document.getElementById('rvMore');
+    if (more) {
+      const rest = rv.total - rv.loaded;
+      more.style.display = rest > 0 ? 'block' : 'none';
+      more.textContent = `加载更多（还有 ${rest} 条）`;
+    }
+  } catch (e) {
+    box.innerHTML = `<div class="meta">评价加载失败：${esc(e.message)}</div>`;
+  }
+}
+
+function reviewItemHtml(r) {
+  const body = r.content
+    ? `<div class="rt">${esc(r.content)}</div>`
+    : '<div class="rt" style="color:#bbb">该用户没有填写评价内容</div>';
+  return `
+    <div class="ritem">
+      <div class="rh">
+        <span>${esc(r.nickname)}</span>
+        <span>${esc(r.createdAt)}</span>
+      </div>
+      ${starsHtml(r.rating)}
+      ${body}
+    </div>`;
+}
+
+function filterReviews(score) {
+  if (rv.rating === score) return;
+  rv.rating = score;
+  loadReviews(true);
+}
+
+function moreReviews() {
+  rv.page += 1;
+  loadReviews(false);
+}
+
+// ---- 发表评价（从我的订单进入）----
+
+let reviewTarget = { orderId: 0, orderItemId: 0 };
+let reviewScore = 5;
+// 当前展示的订单详情，评价弹窗用它取商品名
+let lastOrder = null;
+
+const SCORE_TEXT = { 1: '很差', 2: '较差', 3: '一般', 4: '不错', 5: '很好' };
+
+function openReview(orderId, orderItemId) {
+  const item = (lastOrder && lastOrder.items || []).find((x) => x.orderItemId === orderItemId);
+  reviewTarget = { orderId, orderItemId };
+  reviewScore = 5;
+  document.getElementById('rvTitle').textContent = '评价「' + (item ? item.goodsName : '商品') + '」';
+  document.getElementById('rvText').value = '';
+  document.getElementById('rvAnon').checked = false;
+  document.getElementById('rvTip').textContent = '';
+  document.getElementById('rvCounter').textContent = '0/500';
+  renderScore();
+  document.getElementById('reviewModal').classList.add('show');
+}
+
+function renderScore() {
+  document.getElementById('rvStars').innerHTML = [1, 2, 3, 4, 5]
+    .map((i) => `<span class="${i <= reviewScore ? 'on' : ''}" onclick="setScore(${i})">★</span>`)
+    .join('');
+  document.getElementById('rvScoreText').textContent = SCORE_TEXT[reviewScore];
+}
+
+function setScore(n) {
+  reviewScore = n;
+  renderScore();
+}
+
+async function submitReview(e) {
+  e.preventDefault();
+  const tip = document.getElementById('rvTip');
+  const btn = document.getElementById('rvBtn');
+  const content = document.getElementById('rvText').value.trim();
+
+  btn.disabled = true;
+  btn.textContent = '提交中…';
+  try {
+    await api('/order/review', {
+      method: 'POST',
+      body: {
+        orderItemId: reviewTarget.orderItemId,
+        rating: reviewScore,
+        content,
+        anonymous: document.getElementById('rvAnon').checked,
+      },
+    });
+    closePanel('reviewModal');
+    toast('评价已提交');
+    // 重画订单详情，让这条明细变成「已评价」
+    await viewOrder(reviewTarget.orderId);
+  } catch (err) {
+    tip.textContent = err.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '提交评价';
+  }
+  return false;
 }
 
 function closeModal() {
@@ -1003,6 +1252,7 @@ async function viewOrder(id) {
   box.innerHTML = '<div class="empty">加载中…</div>';
   try {
     const d = await api('/order/detail?id=' + id);
+    lastOrder = d;  // 评价弹窗靠它查商品名，避免把商品名拼进 onclick 字符串
     box.innerHTML = `
       <div class="dline"><span>订单号</span><span>${d.orderNo}</span></div>
       <div class="dline"><span>状态</span><span>${stTag(d)}</span></div>
@@ -1019,6 +1269,9 @@ async function viewOrder(id) {
               <div style="color:#999;font-size:12px">${fmt(i.price)} × ${i.quantity}</div>
             </div>
             <div style="color:#e4393c">${fmt(i.subtotal)}</div>
+            ${d.status !== 3 ? '' : (i.reviewed
+              ? '<span class="st-tag" style="flex:none">已评价</span>'
+              : `<button class="btn ghost sm" style="flex:none" onclick="openReview(${d.id}, ${i.orderItemId})">评价</button>`)}
           </div>`).join('')}
       </div>
       <div class="dline" style="border-top:1px solid #eee;margin-top:8px;padding-top:12px">

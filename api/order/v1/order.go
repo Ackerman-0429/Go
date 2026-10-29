@@ -60,12 +60,29 @@ type DetailReq struct {
 
 // DetailItem 订单明细
 type DetailItem struct {
-	GoodsID   uint64  `json:"goodsId"   dc:"商品ID"`
-	GoodsName string  `json:"goodsName" dc:"下单时商品名"`
-	Cover     string  `json:"cover"     dc:"下单时封面图"`
-	Price     float64 `json:"price"     dc:"下单时单价"`
-	Quantity  uint    `json:"quantity"  dc:"数量"`
-	Subtotal  float64 `json:"subtotal"  dc:"小计"`
+	OrderItemID uint64  `json:"orderItemId" dc:"明细ID，发表评价时用"`
+	GoodsID     uint64  `json:"goodsId"   dc:"商品ID"`
+	GoodsName   string  `json:"goodsName" dc:"下单时商品名"`
+	Cover       string  `json:"cover"     dc:"下单时封面图"`
+	Price       float64 `json:"price"     dc:"下单时单价"`
+	Quantity    uint    `json:"quantity"  dc:"数量"`
+	Subtotal    float64 `json:"subtotal"  dc:"小计"`
+	Reviewed    bool    `json:"reviewed"  dc:"是否已评价"`
+}
+
+// ReviewReq 对已完成订单里的某个商品发表评价。
+// 用订单明细 ID 定位而不是 goodsId：同一商品在多笔订单里各评一次，互不影响。
+type ReviewReq struct {
+	g.Meta      `path:"/order/review" method:"post" summary:"发表评价" tags:"订单"`
+	OrderItemID uint64 `json:"orderItemId" v:"required|min:1#请提供订单明细ID|订单明细ID不合法"      dc:"订单明细ID"`
+	Rating      uint   `json:"rating"      v:"required|between:1,5#请选择评分|评分需在1-5之间"    dc:"评分 1-5 星"`
+	Content     string `json:"content"     v:"length:0,500#评价内容不能超过500字"           dc:"评价内容，可为空"`
+	Anonymous   bool   `json:"anonymous"                                    dc:"是否匿名展示"`
+}
+
+// ReviewRes 评价结果
+type ReviewRes struct {
+	ID uint64 `json:"id" dc:"评价ID"`
 }
 
 // DetailRes 订单详情

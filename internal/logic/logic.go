@@ -9,5 +9,6 @@ import (
 	_ "goshop/internal/logic/category"
 	_ "goshop/internal/logic/goods"
 	_ "goshop/internal/logic/order"
+	_ "goshop/internal/logic/review"
 	_ "goshop/internal/logic/user"
 )

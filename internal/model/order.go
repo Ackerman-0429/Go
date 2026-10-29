@@ -47,5 +47,12 @@ type OrderListItem struct {
 // OrderDetail 订单详情
 type OrderDetail struct {
 	Order *entity.Orders
-	Items []entity.OrderItem
+	Items []OrderDetailItem
+}
+
+// OrderDetailItem 订单明细 + 是否已评价。
+// 内嵌 entity.OrderItem，取商品快照字段时写法不变。
+type OrderDetailItem struct {
+	entity.OrderItem
+	Reviewed bool
 }

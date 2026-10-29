@@ -229,7 +229,40 @@ func (s *sOrder) Detail(ctx context.Context, userID, orderID uint64) (*model.Ord
 		Scan(&items); err != nil {
 		return nil, err
 	}
-	return &model.OrderDetail{Order: order, Items: items}, nil
+
+	// 哪些明细已经评过价，一次查完，前端据此决定显示「评价」还是「已评价」
+	reviewed, err := reviewedItemIDs(ctx, orderID)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]model.OrderDetailItem, 0, len(items))
+	for _, it := range items {
+		out = append(out, model.OrderDetailItem{OrderItem: it, Reviewed: reviewed[it.Id]})
+	}
+	return &model.OrderDetail{Order: order, Items: out}, nil
+}
+
+// reviewedItemIDs 取该订单下已评价的明细 ID 集合。
+// 注意这里扫到结构体切片而不是 []uint64：单列 Scan 到基础类型切片会静默返回空值。
+func reviewedItemIDs(ctx context.Context, orderID uint64) (map[uint64]bool, error) {
+	cols := dao.GoodsReview.Columns()
+
+	var rows []struct {
+		OrderItemId uint64 `orm:"order_item_id"`
+	}
+	if err := dao.GoodsReview.Ctx(ctx).
+		Fields(cols.OrderItemId).
+		Where(cols.OrderId, orderID).
+		Scan(&rows); err != nil {
+		return nil, err
+	}
+
+	out := make(map[uint64]bool, len(rows))
+	for _, r := range rows {
+		out[r.OrderItemId] = true
+	}
+	return out, nil
 }
 
 // Cancel 取消待付款订单并回滚库存

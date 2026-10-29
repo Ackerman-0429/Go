@@ -18,12 +18,14 @@ func (c *ControllerV1) Detail(ctx context.Context, req *v1.DetailReq) (res *v1.D
 	items := make([]v1.DetailItem, 0, len(out.Items))
 	for _, it := range out.Items {
 		items = append(items, v1.DetailItem{
-			GoodsID:   it.GoodsId,
-			GoodsName: it.GoodsName,
-			Cover:     it.GoodsCover,
-			Price:     it.GoodsPrice,
-			Quantity:  it.Quantity,
-			Subtotal:  it.Subtotal,
+			OrderItemID: it.Id,
+			GoodsID:     it.GoodsId,
+			GoodsName:   it.GoodsName,
+			Cover:       it.GoodsCover,
+			Price:       it.GoodsPrice,
+			Quantity:    it.Quantity,
+			Subtotal:    it.Subtotal,
+			Reviewed:    it.Reviewed,
 		})
 	}
 

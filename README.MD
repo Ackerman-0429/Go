@@ -76,9 +76,9 @@ utility/                通用工具（金额分换算等）
 | --- | --- | --- |
 | 用户 | `POST /user/register`、`POST /user/login`、`POST /user/logout`、`GET /user/info`、`POST /user/profile`、`POST /user/password` | 注册/登录写入 Session；`profile` 改昵称/邮箱/手机号，`password` 凭原密码改密 |
 | 分类 | `GET /category/list` | 二级分类，深度优先排序 |
-| 商品 | `GET /goods/list`、`GET /goods/detail` | 仅返回上架商品 |
+| 商品 | `GET /goods/list`、`GET /goods/detail`、`GET /goods/reviews` | 仅返回上架商品；详情带评分汇总 |
 | 购物车 | `POST /cart/add|update|delete|clear`、`GET /cart/list` | 需登录 |
-| 订单 | `POST /order/create|pay|cancel`、`GET /order/list|detail` | 需登录 |
+| 订单 | `POST /order/create|pay|cancel|review`、`GET /order/list|detail` | 需登录 |
 | 后台 | 见下方「后台管理」 | 需登录 + 管理员 |
 
 统一响应体：`{"code":0,"message":"OK","data":{...}}`，由 `ghttp.MiddlewareHandlerResponse` 输出。
@@ -132,6 +132,9 @@ mysql -h 127.0.0.1 -u root -p gfstudy < manifest/sql/upgrade/20261028_user_role.
 
 # 建立 admin 管理员账号，并收回 alice 的管理员权限
 mysql -h 127.0.0.1 -u root -p gfstudy < manifest/sql/upgrade/20261028_admin_role.sql
+
+# 商品评价表
+mysql -h 127.0.0.1 -u root -p gfstudy < manifest/sql/upgrade/20261029_goods_review.sql
 ```
 
 第二个脚本用 `INSERT ... ON DUPLICATE KEY UPDATE`，所以 admin 已存在时不会覆盖它的密码，
@@ -182,6 +185,36 @@ mysql -h 127.0.0.1 -u root -p gfstudy < manifest/sql/upgrade/20261028_admin_role
 - 改完不动 Session：当前设备继续可用，用户不会改完密码就被踢回登录页；
   其他设备上已登录的会话也不受影响（本项目 Session 存在 Cookie 里，没有做多端会话表）。
 - 与后台「重置密码」的分工：用户自己改要验原密码，管理员重置不需要（客服场景，管理员也不知道原密码）。
+
+## 商品评价
+
+写入在订单侧（`POST /order/review`），读取在商品侧（`GET /goods/reviews`），逻辑都收在
+`internal/logic/review`，goods / order 两个控制器都调 `service.Review()`。
+
+**约束**（都在 logic 层校验）：
+
+- **一条订单明细只能评一次**。`goods_review.order_item_id` 上有唯一键，先 `Count()` 给人话提示，
+  并发撞车时靠唯一键兜底，把 `Duplicate entry` 转成同一句「该商品已经评价过了」。
+- **只有已完成（status=3）的订单能评**，否则下单当天就能刷好评。
+- 用**订单明细 ID** 定位商品，而不是前端传 goodsId：少一个可被伪造的参数，
+  也天然支持「同一商品在不同订单里各评一次」。
+- 不是自己的明细统一返回「订单明细不存在」，不透露别人的订单里有没有这件商品。
+- 评分 1-5 必填，内容选填且最多 500 字，支持匿名。
+
+**读取**：
+
+- 汇总用一次 `GROUP BY rating` 算出平均分、总条数、各星级分布，不逐条累加；平均分保留一位小数。
+- 列表分页，星级筛选（`rating=0` 表示全部），汇总数字**不受筛选影响**，始终是全局的。
+- 匿名评价在接口层就把昵称替换成「匿名用户」并只返回 `anonymous` 标记，**不下发 user_id**。
+- 昵称批量取一次（避免 N+1）；用户已被删除时显示「已注销用户」，不留空白。
+- 详情接口 `GET /goods/detail` 直接带 `rating` / `reviewCount`，前端画星级不用额外请求。
+- 订单详情里每条明细带 `orderItemId` 与 `reviewed`，前端据此决定显示「评价」还是「已评价」。
+
+**其它**：
+
+- `status` 字段（1 显示 / 0 隐藏）读取侧已生效，但**后台审核还没做**——目前没有任何入口能把评价隐藏。
+  要做的话加一个后台「评价管理」tab 即可，读接口不用改。
+- 评价内容是唯一由用户自由填写并回显的字段，前端渲染前统一走 `esc()` 转义，别直接拼 HTML。
 
 ## 代码生成约定
 
