@@ -340,3 +340,53 @@ type UserResetPasswordReq struct {
 
 // UserResetPasswordRes 重置结果
 type UserResetPasswordRes struct{}
+
+// ReviewListReq 后台评价列表。与前台不同，状态与星级都可以筛选，也能搜到已隐藏的评价。
+type ReviewListReq struct {
+	g.Meta   `path:"/review/list" method:"get" summary:"评价列表" tags:"后台-评价"`
+	Page     int    `json:"page"     d:"1"  v:"min:1#页码最小为1"                  dc:"页码"`
+	PageSize int    `json:"pageSize" d:"10" v:"between:1,100#每页数量需在1-100之间" dc:"每页数量"`
+	Status   int    `json:"status"   d:"-1" v:"in:-1,0,1#状态不合法"              dc:"按状态筛选：-1 全部 1 显示中 0 已隐藏"`
+	Rating   int    `json:"rating"   d:"0"  v:"in:0,1,2,3,4,5#星级不合法"          dc:"按星级筛选：0 全部"`
+	GoodsId  uint64 `json:"goodsId"  d:"0"                                        dc:"按商品筛选：0 全部"`
+	Keyword  string `json:"keyword"                                               dc:"按评价内容/商品名/用户名搜索"`
+}
+
+// ReviewAdminItem 后台评价列表项。
+// 与前台列表的差别：匿名评价不替换昵称，管理员要能看清是谁评的。
+type ReviewAdminItem struct {
+	ID        uint64 `json:"id"        dc:"评价ID"`
+	GoodsID   uint64 `json:"goodsId"   dc:"商品ID"`
+	GoodsName string `json:"goodsName" dc:"商品名称"`
+	UserID    uint64 `json:"userId"    dc:"评价用户ID"`
+	Username  string `json:"username"  dc:"用户名"`
+	Nickname  string `json:"nickname"  dc:"昵称"`
+	Rating    uint   `json:"rating"    dc:"评分 1-5 星"`
+	Content   string `json:"content"   dc:"评价内容"`
+	Anonymous bool   `json:"anonymous" dc:"是否匿名发表"`
+	Status    uint   `json:"status"    dc:"状态：1显示 0隐藏"`
+	CreatedAt string `json:"createdAt" dc:"评价时间"`
+}
+
+// ReviewListRes 分页结果，附带当前筛选下的显示/隐藏计数
+type ReviewListRes struct {
+	List     []ReviewAdminItem `json:"list"     dc:"评价列表"`
+	Total    int               `json:"total"    dc:"当前状态下总条数"`
+	Page     int               `json:"page"     dc:"当前页"`
+	PageSize int               `json:"pageSize" dc:"每页数量"`
+	Visible  int               `json:"visible"  dc:"当前筛选下显示中的条数"`
+	Hidden   int               `json:"hidden"   dc:"当前筛选下已隐藏的条数"`
+}
+
+// ReviewStatusReq 显示或隐藏评价。隐藏后前台列表与评分汇总都不再计入。
+type ReviewStatusReq struct {
+	g.Meta `path:"/review/status" method:"post" summary:"显示或隐藏评价" tags:"后台-评价"`
+	ID     uint64 `json:"id"     v:"required|min:1#请提供评价ID|评价ID不合法" dc:"评价ID"`
+	Status uint   `json:"status" v:"in:0,1#状态只能是0或1"                dc:"1显示 0隐藏"`
+}
+
+// ReviewStatusRes 操作结果
+type ReviewStatusRes struct {
+	ID     uint64 `json:"id"     dc:"评价ID"`
+	Status uint   `json:"status" dc:"当前状态"`
+}

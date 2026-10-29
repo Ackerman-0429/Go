@@ -8,9 +8,11 @@ import (
 	"math"
 	"strings"
 
+	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/errors/gcode"
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/os/gtime"
 
 	"goshop/internal/consts"
 	"goshop/internal/dao"
@@ -177,6 +179,131 @@ func (s *sReview) Summary(ctx context.Context, goodsID uint64) (*model.ReviewSum
 		out.AvgRating = math.Round(float64(sum)/float64(count)*10) / 10
 	}
 	return out, nil
+}
+
+// AdminList 后台评价列表：可按状态/星级/商品筛选，支持内容、商品名、用户名搜索。
+// 同时返回「显示中 / 已隐藏」两个计数，供列表顶部的 tab 使用。
+func (s *sReview) AdminList(ctx context.Context, in model.ReviewAdminListInput) ([]model.ReviewAdminItem, int, model.ReviewAdminStats, error) {
+	var stats model.ReviewAdminStats
+
+	// 计数用另一份查询：不带 status 条件，这样两个 tab 的数字在切换时不会互相塌陷
+	var statRows []struct {
+		Status uint `orm:"status"`
+		Total  int  `orm:"total"`
+	}
+	if err := adminQuery(ctx, in).
+		Fields("r.status, COUNT(*) AS total").
+		Group("r.status").
+		Scan(&statRows); err != nil {
+		return nil, 0, stats, err
+	}
+	for _, r := range statRows {
+		if r.Status == 1 {
+			stats.Visible = r.Total
+		} else {
+			stats.Hidden += r.Total
+		}
+	}
+
+	m := adminQuery(ctx, in)
+	if in.Status >= 0 {
+		m = m.Where("r.status", in.Status)
+	}
+	total, err := m.Count()
+	if err != nil {
+		return nil, 0, stats, err
+	}
+
+	var rows []struct {
+		Id        uint64      `orm:"id"`
+		GoodsId   uint64      `orm:"goods_id"`
+		GoodsName string      `orm:"goods_name"`
+		UserId    uint64      `orm:"user_id"`
+		Username  string      `orm:"username"`
+		Nickname  string      `orm:"nickname"`
+		Rating    uint        `orm:"rating"`
+		Content   string      `orm:"content"`
+		Anonymous uint        `orm:"anonymous"`
+		Status    uint        `orm:"status"`
+		CreatedAt *gtime.Time `orm:"created_at"`
+	}
+	page := adminQuery(ctx, in).
+		Fields("r.id, r.goods_id, r.user_id, r.rating, r.content, r.anonymous, r.status, r.created_at, " +
+			"g.name AS goods_name, u.username AS username, u.nickname AS nickname")
+	if in.Status >= 0 {
+		page = page.Where("r.status", in.Status)
+	}
+	if err := page.Page(in.Page, in.PageSize).
+		OrderDesc("r.id").
+		Scan(&rows); err != nil {
+		return nil, 0, stats, err
+	}
+
+	out := make([]model.ReviewAdminItem, 0, len(rows))
+	for _, r := range rows {
+		name := r.GoodsName
+		if name == "" {
+			// 商品被物理删除后左连接取不到名字，别让列表出现空白单元格
+			name = "商品已删除"
+		}
+		out = append(out, model.ReviewAdminItem{
+			ID:        r.Id,
+			GoodsID:   r.GoodsId,
+			GoodsName: name,
+			UserID:    r.UserId,
+			Username:  r.Username,
+			Nickname:  r.Nickname,
+			Rating:    r.Rating,
+			Content:   r.Content,
+			Anonymous: r.Anonymous == 1,
+			Status:    r.Status,
+			CreatedAt: r.CreatedAt,
+		})
+	}
+	return out, total, stats, nil
+}
+
+// AdminSetStatus 显示或隐藏评价。前台列表与评分汇总都只算 status=1 的，
+// 所以隐藏后该条立刻从前台消失，重新显示则恢复。
+func (s *sReview) AdminSetStatus(ctx context.Context, id uint64, status uint) error {
+	cols := dao.GoodsReview.Columns()
+
+	// 不能靠 RowsAffected 判断存在：值本来就相同的话 MySQL 返回 0，
+	// 会被误判成「评价不存在」。
+	exists, err := dao.GoodsReview.Ctx(ctx).WherePri(id).Count()
+	if err != nil {
+		return err
+	}
+	if exists == 0 {
+		return gerror.NewCode(gcode.CodeNotFound, "评价不存在")
+	}
+
+	_, err = dao.GoodsReview.Ctx(ctx).
+		WherePri(id).
+		Data(g.Map{cols.Status: status}).
+		Update()
+	return err
+}
+
+// adminQuery 后台列表的公共条件。刻意不包含 status：
+// 顶部计数要按「除状态以外」的条件算，具体查哪一页再由调用方补 status。
+func adminQuery(ctx context.Context, in model.ReviewAdminListInput) *gdb.Model {
+	m := dao.GoodsReview.Ctx(ctx).
+		As("r").
+		LeftJoin("goods g", "g.id = r.goods_id").
+		LeftJoin("user u", "u.id = r.user_id")
+
+	if in.Rating > 0 {
+		m = m.Where("r.rating", in.Rating)
+	}
+	if in.GoodsID > 0 {
+		m = m.Where("r.goods_id", in.GoodsID)
+	}
+	if in.Keyword != "" {
+		like := "%" + in.Keyword + "%"
+		m = m.Where("(r.content LIKE ? OR g.name LIKE ? OR u.username LIKE ?)", like, like, like)
+	}
+	return m
 }
 
 // nicknamesByID 批量查昵称，昵称为空时回退到用户名

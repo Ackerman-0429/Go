@@ -20,6 +20,12 @@ type (
 		// Summary 商品评分汇总：平均分、总条数、各星级分布。
 		// 一次 GROUP BY rating 拿到，不逐条累加。
 		Summary(ctx context.Context, goodsID uint64) (*model.ReviewSummary, error)
+		// AdminList 后台评价列表：可按状态/星级/商品筛选，支持内容、商品名、用户名搜索。
+		// 同时返回「显示中 / 已隐藏」两个计数，供列表顶部的 tab 使用。
+		AdminList(ctx context.Context, in model.ReviewAdminListInput) ([]model.ReviewAdminItem, int, model.ReviewAdminStats, error)
+		// AdminSetStatus 显示或隐藏评价。前台列表与评分汇总都只算 status=1 的，
+		// 所以隐藏后该条立刻从前台消失，重新显示则恢复。
+		AdminSetStatus(ctx context.Context, id uint64, status uint) error
 	}
 )
 

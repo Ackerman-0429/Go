@@ -27,4 +27,6 @@ type IAdminV1 interface {
 	UserSave(ctx context.Context, req *v1.UserSaveReq) (res *v1.UserSaveRes, err error)
 	UserCreate(ctx context.Context, req *v1.UserCreateReq) (res *v1.UserCreateRes, err error)
 	UserResetPassword(ctx context.Context, req *v1.UserResetPasswordReq) (res *v1.UserResetPasswordRes, err error)
+	ReviewList(ctx context.Context, req *v1.ReviewListReq) (res *v1.ReviewListRes, err error)
+	ReviewStatus(ctx context.Context, req *v1.ReviewStatusReq) (res *v1.ReviewStatusRes, err error)
 }

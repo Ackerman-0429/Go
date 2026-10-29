@@ -155,6 +155,14 @@
   }
   .gate-card h2 { font-size: 16px; margin-bottom: 8px; }
   .gate-card p { font-size: 13px; color: #888; margin-bottom: 20px; }
+
+  /* 评价管理 */
+  .rvStars { color: #f5a623; letter-spacing: 1px; font-size: 13px; white-space: nowrap; }
+  .rvStars i { color: #ddd; font-style: normal; }
+  .rvStars em { color: #999; font-style: normal; margin-left: 6px; font-size: 12px; }
+  .rvContent { white-space: normal; min-width: 220px; line-height: 1.5; }
+  .rvContent.none { color: #bbb; }
+  .rvUser small { display: block; color: #999; font-size: 12px; }
 </style>
 </head>
 <body>
@@ -166,6 +174,7 @@
     <button data-tab="category">分类管理</button>
     <button data-tab="orders">订单管理</button>
     <button data-tab="users">用户管理</button>
+    <button data-tab="reviews">评价管理</button>
   </nav>
   <div class="head-right">
     <span class="uname" id="who"></span>
@@ -304,6 +313,47 @@
       </table>
     </div>
     <div class="pager" id="userPager"></div>
+  </section>
+
+  <!-- 评价管理 -->
+  <section class="panel hide" id="panel-reviews">
+    <div class="toolbar">
+      <select id="rvStatus" style="width:140px">
+        <option value="-1">全部状态</option>
+        <option value="1">显示中</option>
+        <option value="0">已隐藏</option>
+      </select>
+      <select id="rvRating" style="width:130px">
+        <option value="0">全部星级</option>
+        <option value="5">5 星</option>
+        <option value="4">4 星</option>
+        <option value="3">3 星</option>
+        <option value="2">2 星</option>
+        <option value="1">1 星</option>
+      </select>
+      <input id="rvKeyword" placeholder="评价内容 / 商品名 / 用户名" style="width:240px">
+      <button class="btn ghost sm" id="rvSearch">查询</button>
+      <span class="spacer"></span>
+      <span class="muted" id="rvCount" style="font-size:13px"></span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:60px">ID</th>
+            <th>商品</th>
+            <th style="width:150px">评价人</th>
+            <th style="width:130px">评分</th>
+            <th>评价内容</th>
+            <th style="width:90px">状态</th>
+            <th style="width:150px">时间</th>
+            <th style="width:90px">操作</th>
+          </tr>
+        </thead>
+        <tbody id="reviewBody"></tbody>
+      </table>
+    </div>
+    <div class="pager" id="reviewPager"></div>
   </section>
 </main>
 
@@ -538,6 +588,7 @@ const state = {
   goods: { page: 1, pageSize: 10, keyword: '', categoryId: 0, status: -1, total: 0 },
   orders: { page: 1, pageSize: 10, keyword: '', status: -1, total: 0 },
   users: { page: 1, pageSize: 10, keyword: '', role: -1, status: -1, total: 0 },
+  reviews: { page: 1, pageSize: 10, status: -1, rating: 0, keyword: '', total: 0 },
 };
 
 // 列表里已含完整字段，编辑弹窗直接从缓存回填，省一次详情请求
@@ -1048,6 +1099,78 @@ function renderUsers(list) {
   }).join('');
 }
 
+// ---------------------------------------------------------------------------
+// 评价
+// ---------------------------------------------------------------------------
+async function loadReviews() {
+  const r = state.reviews;
+  const qs = new URLSearchParams({
+    page: r.page, pageSize: r.pageSize, status: r.status, rating: r.rating, keyword: r.keyword,
+  });
+  try {
+    const d = await api('/admin/review/list?' + qs.toString());
+    r.total = d.total;
+    // 这两个数字不受状态筛选影响，切 tab 时不会互相塌陷
+    document.getElementById('rvCount').textContent =
+      `显示中 ${d.visible} 条 · 已隐藏 ${d.hidden} 条`;
+    renderReviews(d.list || []);
+    renderPager('reviewPager', d.page, d.pageSize, d.total, (p) => {
+      state.reviews.page = p;
+      loadReviews();
+    });
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
+
+function renderReviews(list) {
+  const body = document.getElementById('reviewBody');
+  if (!list.length) {
+    body.innerHTML = '<tr><td colspan="8" class="empty">没有符合条件的评价</td></tr>';
+    return;
+  }
+  body.innerHTML = list.map((r) => {
+    const stars = '★'.repeat(r.rating) + (r.rating < 5 ? `<i>${'★'.repeat(5 - r.rating)}</i>` : '');
+    const content = r.content
+      ? `<div class="rvContent">${esc(r.content)}</div>`
+      : '<div class="rvContent none">该用户没有填写评价内容</div>';
+    const next = r.status === 1 ? 0 : 1;
+    return `
+      <tr>
+        <td class="muted">${r.id}</td>
+        <td>
+          <div>${esc(r.goodsName)}</div>
+          <small style="color:#999;font-size:11px">商品 #${r.goodsId}</small>
+        </td>
+        <td class="rvUser">
+          ${esc(r.nickname || r.username)}
+          ${r.anonymous ? '<span class="tag off" style="margin-left:4px">匿名</span>' : ''}
+          <small>@${esc(r.username)}</small>
+        </td>
+        <td><span class="rvStars">${stars}<em>${r.rating}.0</em></span></td>
+        <td>${content}</td>
+        <td><span class="tag ${r.status === 1 ? 'on' : 'off'}">${r.status === 1 ? '显示中' : '已隐藏'}</span></td>
+        <td class="muted" style="font-size:12px">${esc(r.createdAt)}</td>
+        <td>
+          <button class="btn ghost sm" onclick="toggleReview(${r.id}, ${next})">
+            ${next === 1 ? '显示' : '隐藏'}
+          </button>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+// 隐藏是软操作，随时可恢复，不做二次确认
+async function toggleReview(id, status) {
+  try {
+    await post('/admin/review/status', { id, status });
+    toast(status === 1 ? '已恢复显示' : '已隐藏，前台不再展示');
+    loadReviews();
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
+
 // 新建与编辑共用一个弹窗：不传 id 即新建，此时才需要填用户名与初始密码。
 // 编辑时用户名只读——它是登录身份，改名会让对方无法用原账号登录。
 function openUserModal(id) {
@@ -1312,9 +1435,11 @@ function switchTab(tab) {
   document.getElementById('panel-category').classList.toggle('hide', tab !== 'category');
   document.getElementById('panel-orders').classList.toggle('hide', tab !== 'orders');
   document.getElementById('panel-users').classList.toggle('hide', tab !== 'users');
+  document.getElementById('panel-reviews').classList.toggle('hide', tab !== 'reviews');
   if (tab === 'goods') loadGoods();
   else if (tab === 'category') loadCategories();
   else if (tab === 'orders') loadOrders();
+  else if (tab === 'reviews') loadReviews();
   else loadUsers();
 }
 
@@ -1362,6 +1487,15 @@ async function boot() {
   document.getElementById('uRole').onchange = () => document.getElementById('uSearch').click();
   document.getElementById('uStatus').onchange = () => document.getElementById('uSearch').click();
   document.getElementById('uCreate').onclick = () => openUserModal();
+  document.getElementById('rvSearch').onclick = () => {
+    state.reviews.keyword = document.getElementById('rvKeyword').value.trim();
+    state.reviews.status = document.getElementById('rvStatus').value;
+    state.reviews.rating = document.getElementById('rvRating').value;
+    state.reviews.page = 1;
+    loadReviews();
+  };
+  document.getElementById('rvStatus').onchange = () => document.getElementById('rvSearch').click();
+  document.getElementById('rvRating').onchange = () => document.getElementById('rvSearch').click();
   document.getElementById('userCancel').onclick = () => {
     document.getElementById('userModal').classList.remove('show');
   };
