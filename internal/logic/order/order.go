@@ -77,7 +77,7 @@ func (s *sOrder) Create(ctx context.Context, in model.OrderCreateInput) (*model.
 				return err
 			}
 			if affected == 0 {
-				return gerror.Newf("「%s」库存不足，请返回购物车调整数量", item.Name)
+				return gerror.NewCodef(consts.CodeStockNotEnough, "「%s」库存不足，请返回购物车调整数量", item.Name)
 			}
 
 			cents := money.ToCents(item.Price) * int64(item.Quantity)
@@ -137,7 +137,7 @@ func (s *sOrder) Create(ctx context.Context, in model.OrderCreateInput) (*model.
 			return err
 		}
 		if int(deleted) != len(cartIDs) {
-			return gerror.New("购物车已发生变化，请刷新后重试")
+			return gerror.NewCode(consts.CodeCartChanged, "购物车已发生变化，请刷新后重试")
 		}
 
 		out = &model.OrderCreateOutput{

@@ -57,7 +57,7 @@ func (s *sCart) Add(ctx context.Context, in model.CartAddInput) (uint64, uint, e
 		quantity += exist.Quantity
 	}
 	if quantity > goods.Stock {
-		return 0, 0, gerror.Newf("库存不足，最多可购买 %d 件", goods.Stock)
+		return 0, 0, gerror.NewCodef(consts.CodeStockNotEnough, "库存不足，最多可购买 %d 件", goods.Stock)
 	}
 
 	if exist != nil {
@@ -80,7 +80,7 @@ func (s *sCart) Add(ctx context.Context, in model.CartAddInput) (uint64, uint, e
 		if row, e := s.getByGoods(ctx, in.UserID, in.GoodsID); e == nil && row != nil {
 			merged := row.Quantity + in.Quantity
 			if merged > goods.Stock {
-				return 0, 0, gerror.Newf("库存不足，最多可购买 %d 件", goods.Stock)
+				return 0, 0, gerror.NewCodef(consts.CodeStockNotEnough, "库存不足，最多可购买 %d 件", goods.Stock)
 			}
 			if _, e2 := dao.Cart.Ctx(ctx).
 				Where(cols.Id, row.Id).
@@ -165,7 +165,7 @@ func (s *sCart) UpdateQuantity(ctx context.Context, userID, cartID uint64, quant
 		return err
 	}
 	if quantity > goods.Stock {
-		return gerror.Newf("库存不足，最多可购买 %d 件", goods.Stock)
+		return gerror.NewCodef(consts.CodeStockNotEnough, "库存不足，最多可购买 %d 件", goods.Stock)
 	}
 
 	cols := dao.Cart.Columns()

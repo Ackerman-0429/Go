@@ -10,4 +10,10 @@ var (
 
 	// CodeGoodsOffSale 商品已下架，不可操作
 	CodeGoodsOffSale = gcode.New(50001, "商品已下架", nil)
+
+	// CodeStockNotEnough 商品库存不足，加购或下单被拒
+	CodeStockNotEnough = gcode.New(50002, "库存不足", nil)
+
+	// CodeCartChanged 下单时购物车内容已变化，需刷新后重试
+	CodeCartChanged = gcode.New(50003, "购物车已发生变化", nil)
 )
