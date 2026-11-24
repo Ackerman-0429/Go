@@ -28,6 +28,13 @@ const (
 	OrderStatusCancelled uint = 4 // 已取消
 )
 
+// 评价显示状态。与 goods_review.status 列取值一一对应。
+// 前台列表与评分汇总只统计 Visibility=Visible 的评价。
+const (
+	ReviewStatusHidden  uint = 0 // 已隐藏，前台不可见
+	ReviewStatusVisible uint = 1 // 显示中
+)
+
 // OrderStatusText 订单状态中文文案，前后台共用一份，避免两处 switch 各写一遍。
 func OrderStatusText(status uint) string {
 	switch status {

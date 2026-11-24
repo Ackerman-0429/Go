@@ -72,7 +72,7 @@ func (s *sReview) Create(ctx context.Context, userID uint64, in model.ReviewCrea
 		cols.Rating:      in.Rating,
 		cols.Content:     strings.TrimSpace(in.Content),
 		cols.Anonymous:   boolToTiny(in.Anonymous),
-		cols.Status:      1,
+		cols.Status:      consts.ReviewStatusVisible,
 	}).InsertAndGetId()
 	if err != nil {
 		// 并发下两个请求可能同时通过上面的 Count，唯一键兜底，转成同样的提示
@@ -90,7 +90,7 @@ func (s *sReview) List(ctx context.Context, in model.ReviewListInput) ([]model.R
 
 	m := dao.GoodsReview.Ctx(ctx).
 		Where(cols.GoodsId, in.GoodsID).
-		Where(cols.Status, 1)
+		Where(cols.Status, consts.ReviewStatusVisible)
 	if in.Rating > 0 {
 		m = m.Where(cols.Rating, in.Rating)
 	}
@@ -154,7 +154,7 @@ func (s *sReview) Summary(ctx context.Context, goodsID uint64) (*model.ReviewSum
 	if err := dao.GoodsReview.Ctx(ctx).
 		Fields(cols.Rating, "COUNT(*) AS total").
 		Where(cols.GoodsId, goodsID).
-		Where(cols.Status, 1).
+		Where(cols.Status, consts.ReviewStatusVisible).
 		Group(cols.Rating).
 		Scan(&rows); err != nil {
 		return nil, err
@@ -198,7 +198,7 @@ func (s *sReview) AdminList(ctx context.Context, in model.ReviewAdminListInput) 
 		return nil, 0, stats, err
 	}
 	for _, r := range statRows {
-		if r.Status == 1 {
+		if r.Status == consts.ReviewStatusVisible {
 			stats.Visible = r.Total
 		} else {
 			stats.Hidden += r.Total
